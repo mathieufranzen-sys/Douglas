@@ -1,11 +1,11 @@
 import { AppShell } from "@/components/agent-ux/app-shell";
 import { MessageBubble } from "@/components/agent-ux/message-bubble";
 import { MessageActionRow } from "@/components/agent-ux/message-action-row";
-import { ThinkingStep } from "@/components/agent-ux/thinking-step";
+import { ReasoningTimeline } from "@/components/agent-ux/reasoning-timeline";
 import { ArtifactCard } from "@/components/agent-ux/artifact-card";
 import { ErrorRetryChip } from "@/components/agent-ux/error-retry-chip";
-import { QuestionCard } from "@/components/agent-ux/question-card";
-import { ComposeBar } from "@/components/agent-ux/compose-bar";
+import { AgentQuestionCard } from "@/components/agent-ux/agent-question-card";
+import { MultimodalInputBar } from "@/components/agent-ux/multimodal-input-bar";
 import { ChevronDown } from "lucide-react";
 
 export default function ConversationPage() {
@@ -49,7 +49,7 @@ export default function ConversationPage() {
               Thinking process for 21s
               <ChevronDown className="size-3.5" strokeWidth={1.75} />
             </button>
-            <ArtifactCard title="AI history.svg" size="1.2 MB" />
+            <ArtifactCard title="AI history.svg" meta="1.2 MB" />
             <MessageActionRow timestamp="2 hours ago" />
           </div>
         </div>
@@ -58,12 +58,12 @@ export default function ConversationPage() {
         <div className="flex flex-col gap-3">
           <MessageBubble>Can you update the employee CRM with the new hires?</MessageBubble>
           <div className="flex flex-col gap-1">
-            <ThinkingStep title="Use Application" timestamp="2 min ago" />
-            <ThinkingStep title="Use Application" timestamp="2 min ago" />
+            <ReasoningTimeline title="Use Application" timestamp="2 min ago" />
+            <ReasoningTimeline title="Use Application" timestamp="2 min ago" />
             <div className="pb-4 pl-7">
               <ErrorRetryChip label="Failed using Application" />
             </div>
-            <ThinkingStep title="Use Application" timestamp="1 min ago" showConnector={false} />
+            <ReasoningTimeline title="Use Application" timestamp="1 min ago" showConnector={false} />
           </div>
           <div className="flex flex-col gap-3 text-sm">
             <p>
@@ -75,14 +75,14 @@ export default function ConversationPage() {
         </div>
 
         {/* Pending question, right above the compose bar */}
-        <QuestionCard
+        <AgentQuestionCard
           question="Which tone should the reply use?"
           step="3/3"
           options={["Formal", "Friendly", "Direct", "Other…"]}
         />
 
         <div className="sticky bottom-6">
-          <ComposeBar />
+          <MultimodalInputBar />
         </div>
       </div>
     </AppShell>

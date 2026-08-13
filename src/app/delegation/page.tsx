@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/agent-ux/app-shell";
-import { AutonomySelector } from "@/components/agent-ux/autonomy-selector";
+import { AutonomyLevelSelector } from "@/components/agent-ux/autonomy-level-selector";
 import { ScheduledTaskCard } from "@/components/agent-ux/scheduled-task-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ export default function DelegationPage() {
         <div className="flex flex-col gap-5 rounded-xl border bg-card p-5">
           <div className="flex flex-col gap-2">
             <Label>Autonomy level</Label>
-            <AutonomySelector />
+            <AutonomyLevelSelector />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="task">Task</Label>
@@ -47,20 +47,20 @@ export default function DelegationPage() {
               title="Daily inbox digest"
               description="Summarizes unread messages and flags anything urgent."
               frequency="Every day at 8:00 AM"
-              nextRun="tomorrow"
+              status="Next run tomorrow"
             />
             <ScheduledTaskCard
               title="Weekly competitor price check"
               description="Compares pricing pages against last week's snapshot."
               frequency="Every Monday"
-              nextRun="in 3 days"
-              defaultActive={false}
+              status="Next run in 3 days"
+              defaultEnabled={false}
             />
             <ScheduledTaskCard
               title="Backup project files"
               description="Archives the design system file and its dependencies."
               frequency="Every day at midnight"
-              nextRun="in 11 hours"
+              status="Next run in 11 hours"
             />
           </div>
         </div>
