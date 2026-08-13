@@ -47,9 +47,10 @@ function applyTheme(state: ThemeState) {
 }
 
 export function ThemeCustomizerProvider({ children }: { children: React.ReactNode }) {
+  // Douglas boots dark, on its own preset — THEME_PRESETS[0], primary #493CEF.
   const [state, setState] = React.useState<ThemeState>({
-    presetId: "neutral",
-    mode: "light",
+    presetId: THEME_PRESETS[0].id,
+    mode: "dark",
     radius: THEME_PRESETS[0].radius,
     font: THEME_PRESETS[0].font,
     primaryOverride: null,

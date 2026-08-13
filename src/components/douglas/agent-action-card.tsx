@@ -5,7 +5,7 @@ import { RotateCcw, Undo2, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ConfidenceBadge, type ConfidenceLevel } from "@/components/agent-ux/confidence-badge";
+import { ConfidenceBadge, type ConfidenceLevel } from "@/components/douglas/confidence-badge";
 
 const agentActionCardVariants = cva("bg-card text-card-foreground", {
   variants: {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   ParameterSelector,
   ParameterSelectorItem,
-} from "@/components/agent-ux/parameter-selector";
+} from "@/components/douglas/parameter-selector";
 
 export type ConflictOption = {
   id: string;

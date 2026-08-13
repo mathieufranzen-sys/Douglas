@@ -14,33 +14,34 @@ import {
   ListChecks,
 } from "lucide-react";
 
-import {
-  ThemeGeneratorSidebar,
-  ThemeGeneratorTopBar,
-} from "@/components/theme/theme-generator-panel";
-import { ApprovalModal, ApprovalModalDiff } from "@/components/agent-ux/approval-modal";
+import { cn } from "@/lib/utils";
+import { ThemeGeneratorSidebar } from "@/components/theme/theme-generator-panel";
+import { ApprovalModal, ApprovalModalDiff } from "@/components/douglas/approval-modal";
 import {
   ScopePermissionCard,
   ScopePermissionGroup,
-} from "@/components/agent-ux/scope-permission-card";
-import { UndoRevokeBar } from "@/components/agent-ux/undo-revoke-bar";
-import { AgentQuestionCard } from "@/components/agent-ux/agent-question-card";
-import { MultimodalInputBar } from "@/components/agent-ux/multimodal-input-bar";
+} from "@/components/douglas/scope-permission-card";
+import { UndoRevokeBar } from "@/components/douglas/undo-revoke-bar";
+import { AgentQuestionCard } from "@/components/douglas/agent-question-card";
+import { MultimodalInputBar } from "@/components/douglas/multimodal-input-bar";
 import {
   ParameterSelector,
   ParameterSelectorItem,
-} from "@/components/agent-ux/parameter-selector";
-import { AutonomyLevelSelector } from "@/components/agent-ux/autonomy-level-selector";
-import { DelegationCard } from "@/components/agent-ux/delegation-card";
-import { ScheduledTaskCard } from "@/components/agent-ux/scheduled-task-card";
-import { AgentErrorCard } from "@/components/agent-ux/agent-error-card";
-import { ReasoningTimeline, ReasoningTimelineSummary } from "@/components/agent-ux/reasoning-timeline";
-import { ArtifactCard } from "@/components/agent-ux/artifact-card";
-import { SourceChip } from "@/components/agent-ux/source-chip";
-import { MessageBubble } from "@/components/agent-ux/message-bubble";
-import { MessageActionRow } from "@/components/agent-ux/message-action-row";
-import { ConfidenceBadge } from "@/components/agent-ux/confidence-badge";
-import type { VoiceState } from "@/components/agent-ux/voice-status-pill";
+} from "@/components/douglas/parameter-selector";
+import { AutonomyLevelSelector } from "@/components/douglas/autonomy-level-selector";
+import { DelegationCard } from "@/components/douglas/delegation-card";
+import { ScheduledTaskCard } from "@/components/douglas/scheduled-task-card";
+import { AgentErrorCard } from "@/components/douglas/agent-error-card";
+import {
+  ReasoningTimeline,
+  ReasoningTimelineSummary,
+} from "@/components/douglas/reasoning-timeline";
+import { ArtifactCard } from "@/components/douglas/artifact-card";
+import { SourceChip } from "@/components/douglas/source-chip";
+import { MessageBubble } from "@/components/douglas/message-bubble";
+import { MessageActionRow } from "@/components/douglas/message-action-row";
+import { ConfidenceBadge } from "@/components/douglas/confidence-badge";
+import type { VoiceState } from "@/components/douglas/voice-status-pill";
 
 const UNDO_WINDOW_SECONDS = 5;
 
@@ -62,17 +63,16 @@ const MODELS = [
   { id: "fable-5-pro", label: "Fable 5", hint: "Profond", description: "For long research runs" },
 ];
 
-/** The three product screens that used to hang off the old placeholder home page. */
-const SCREENS = [
-  { href: "/conversation", label: "Conversation" },
-  { href: "/delegation", label: "Delegation" },
-  { href: "/audit", label: "Audit" },
-];
-
 const APPROVAL_MODES = [
   { id: "manual", label: "Manually approve", description: "Nothing runs without a click." },
   { id: "safe", label: "Act on safe changes", description: "Reversible actions run alone." },
   { id: "auto", label: "Act autonomously", description: "The agent decides and reports." },
+];
+
+const SCREENS = [
+  { href: "/conversation", label: "Conversation" },
+  { href: "/delegation", label: "Delegation" },
+  { href: "/audit", label: "Audit" },
 ];
 
 /** Countdown that stops at zero and can be rearmed. */
@@ -97,11 +97,45 @@ function useCountdown(initial: number) {
   };
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+/**
+ * A conversation surface. Sits on --sidebar rather than --card so the threads read as
+ * a distinct surface, and opens already scrolled a little with the top edge faded, so
+ * it is legible that earlier turns exist above the fold.
+ */
+function ChatPreview({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const scroller = React.useRef<HTMLDivElement>(null);
+
+  // Open pinned to the latest turn, the way a live thread would, which is what puts
+  // earlier messages behind the faded top edge.
+  React.useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const pin = () => {
+      el.scrollTop = el.scrollHeight;
+    };
+    pin();
+    const frame = requestAnimationFrame(pin);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   return (
-    <span className="text-[0.6875rem] font-medium tracking-wide text-muted-foreground uppercase">
-      {children}
-    </span>
+    <div className={cn("relative overflow-hidden rounded-xl border bg-sidebar", className)}>
+      {/* Fixed height, not max-height: the thread has to genuinely overflow for the
+          faded top edge to be hiding something. */}
+      <div ref={scroller} className="flex h-[28rem] flex-col gap-4 overflow-y-auto p-4">
+        {children}
+      </div>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-sidebar via-sidebar/85 to-transparent"
+      />
+    </div>
   );
 }
 
@@ -173,7 +207,14 @@ export default function Home() {
       <ThemeGeneratorSidebar className="lg:sticky lg:top-0 lg:h-screen lg:w-[280px] lg:shrink-0 lg:overflow-y-auto" />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <ThemeGeneratorTopBar className="sticky top-0 z-20">
+        <header className="flex flex-wrap items-end justify-between gap-4 px-6 pt-8 pb-2">
+          <div className="flex max-w-xl flex-col gap-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight">Douglas</h1>
+            <p className="text-sm text-muted-foreground">
+              The design system for agent interfaces: showing intent before acting, making
+              reasoning legible, and keeping every automated move reversible.
+            </p>
+          </div>
           <nav className="flex items-center gap-1">
             {SCREENS.map((screen) => (
               <Link
@@ -185,206 +226,186 @@ export default function Home() {
               </Link>
             ))}
           </nav>
-        </ThemeGeneratorTopBar>
+        </header>
 
         <main className="grid flex-1 grid-cols-1 items-start gap-6 p-6 xl:grid-cols-[minmax(0,466px)_minmax(0,1fr)]">
           {/* ── Left column ─────────────────────────────────────────────── */}
           <div className="flex min-w-0 flex-col gap-6">
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Approval Modal</SectionLabel>
-              <ApprovalModal
-                title="Confirm irreversible action"
-                description="This action can't be undone once executed. Review the change before confirming."
-                confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
-                loading={approvalState === "running"}
-                onConfirm={() => setApprovalState("running")}
-                onCancel={() => setApprovalState("idle")}
-              >
-                <ApprovalModalDiff
-                  title="Scheduled meeting"
-                  before="Oct 22 • 11 AM"
-                  after="Oct 22 • 11:10 AM"
-                  icon={Calendar}
+            <ApprovalModal
+              title="Confirm irreversible action"
+              description="This action can't be undone once executed. Review the change before confirming."
+              confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
+              loading={approvalState === "running"}
+              onConfirm={() => setApprovalState("running")}
+              onCancel={() => setApprovalState("idle")}
+            >
+              <ApprovalModalDiff
+                title="Scheduled meeting"
+                before="Oct 22 • 11 AM"
+                after="Oct 22 • 11:10 AM"
+                icon={Calendar}
+              />
+            </ApprovalModal>
+
+            <AutonomyLevelSelector />
+
+            <ChatPreview>
+              <MessageBubble>Where did the new starter list end up?</MessageBubble>
+              <p className="text-sm">
+                In Workday, under October onboarding. Twelve people, all with a start date
+                this month.
+              </p>
+
+              <MessageBubble>
+                Can you update the employee CRM with the new hires?
+              </MessageBubble>
+
+              <div className="flex flex-col">
+                <ReasoningTimeline
+                  title="Use Application"
+                  icon={AppWindow}
+                  state="done"
+                  timestamp="3 min ago"
                 />
-              </ApprovalModal>
-            </section>
+                <ReasoningTimeline
+                  title="Added task : name of the task"
+                  icon={ListChecks}
+                  state="done"
+                  timestamp="2 min ago"
+                  style="code"
+                  code={"Request\n{\n}\n\nreturn {\n}"}
+                />
+                <ReasoningTimeline
+                  title="Done"
+                  state="done"
+                  timestamp="1 min ago"
+                  showConnector={false}
+                />
+              </div>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Autonomy Level Selector — Segmented</SectionLabel>
-              <AutonomyLevelSelector />
-            </section>
+              <p className="text-sm">
+                You now have 12 new employee contacts in the Employee CRM. Each has its own
+                personalised business card on Figma.
+              </p>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Reasoning Timeline · Source Chip · Confidence Badge</SectionLabel>
-              <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
-                <MessageBubble>
-                  Can you update the employee CRM with the new hires?
-                </MessageBubble>
-
-                <div className="flex flex-col">
-                  <ReasoningTimeline
-                    title="Use Application"
-                    icon={AppWindow}
-                    state="done"
-                    timestamp="3 min ago"
-                  />
-                  <ReasoningTimeline
-                    title="Added task : name of the task"
-                    icon={ListChecks}
-                    state="done"
-                    timestamp="2 min ago"
-                    style="code"
-                    code={"Request\n{\n}\n\nreturn {\n}"}
-                  />
-                  <ReasoningTimeline
-                    title="Done"
-                    state="done"
-                    timestamp="1 min ago"
-                    showConnector={false}
-                  />
-                </div>
-
-                <p className="text-sm">
-                  You now have 12 new employee contacts in the Employee CRM. Each has its own
-                  personalised business card on Figma.
-                </p>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs text-muted-foreground">Task updated</span>
-                  <div className="flex flex-wrap gap-2">
-                    <SourceChip label="Figma" icon={Frame} href="#" />
-                    <SourceChip label="Employee CRM" icon={Contact} href="#" />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MessageActionRow timestamp="2 hours ago" />
-                  <ConfidenceBadge level="high" style="dot" />
+              <div className="flex flex-col gap-2">
+                <span className="text-xs text-muted-foreground">Task updated</span>
+                <div className="flex flex-wrap gap-2">
+                  <SourceChip label="Figma" icon={Frame} href="#" />
+                  <SourceChip label="Employee CRM" icon={Contact} href="#" />
                 </div>
               </div>
-            </section>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Scheduled Task Card</SectionLabel>
-              <ScheduledTaskCard
-                title="Weekly competitor price check"
-                description="Tracks 3 competitor sites and flags price changes."
-                frequency="Every Monday at 7:00 AM"
-                status={taskEnabled ? "Next run in 3 days" : "Paused"}
-                enabled={taskEnabled}
-                onEnabledChange={setTaskEnabled}
+              <div className="flex items-center gap-3">
+                <MessageActionRow timestamp="2 hours ago" />
+                <ConfidenceBadge level="high" style="dot" />
+              </div>
+            </ChatPreview>
+
+            <ScheduledTaskCard
+              title="Weekly competitor price check"
+              description="Tracks 3 competitor sites and flags price changes."
+              frequency="Every Monday at 7:00 AM"
+              status={taskEnabled ? "Next run in 3 days" : "Paused"}
+              enabled={taskEnabled}
+              onEnabledChange={setTaskEnabled}
+            />
+
+            {errorCleared ? (
+              <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+                Meeting moved on the second attempt.
+              </div>
+            ) : (
+              <AgentErrorCard
+                style="banner"
+                title="Coundn't move the meeting"
+                retryLabel={retrying ? "Retrying…" : "Retry"}
+                onRetry={() => setRetrying(true)}
               />
-            </section>
-
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Agent Error Card — Banner</SectionLabel>
-              {errorCleared ? (
-                <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-                  Meeting moved on the second attempt.
-                </div>
-              ) : (
-                <AgentErrorCard
-                  style="banner"
-                  title="Coundn't move the meeting"
-                  retryLabel={retrying ? "Retrying…" : "Retry"}
-                  onRetry={() => setRetrying(true)}
-                />
-              )}
-            </section>
+            )}
           </div>
 
           {/* ── Right column ────────────────────────────────────────────── */}
           <div className="flex min-w-0 flex-col gap-6">
             <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(0,248px)_minmax(0,1fr)]">
               <div className="flex min-w-0 flex-col gap-6">
-                <section className="flex flex-col gap-2">
-                  <SectionLabel>Scope Permission Card — Grouped</SectionLabel>
-                  <ScopePermissionGroup>
-                    {SCOPES.map((scope) => (
-                      <ScopePermissionCard
-                        key={scope.id}
-                        style="grouped"
-                        icon={scope.icon}
-                        label={scope.label}
-                        checked={scopes[scope.id]}
-                        onCheckedChange={(next) =>
-                          setScopes((s) => ({ ...s, [scope.id]: next }))
-                        }
-                      />
-                    ))}
-                  </ScopePermissionGroup>
-                </section>
-
-                <section className="flex flex-col gap-2">
-                  <SectionLabel>Undo Revoke Bar · Revoke Timer Chip</SectionLabel>
-                  {undone ? (
-                    <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-                      Reverted. The meeting is back at 11 AM.
-                    </div>
-                  ) : undo.seconds > 0 ? (
-                    <UndoRevokeBar
-                      seconds={undo.seconds}
-                      onUndo={() => {
-                        undo.stop();
-                        setUndone(true);
-                      }}
+                <ScopePermissionGroup>
+                  {SCOPES.map((scope) => (
+                    <ScopePermissionCard
+                      key={scope.id}
+                      style="grouped"
+                      icon={scope.icon}
+                      label={scope.label}
+                      checked={scopes[scope.id]}
+                      onCheckedChange={(next) => setScopes((s) => ({ ...s, [scope.id]: next }))}
                     />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUndone(false);
-                        undo.restart();
-                      }}
-                      className="w-fit rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      Window closed — replay the countdown
-                    </button>
-                  )}
-                </section>
-              </div>
+                  ))}
+                </ScopePermissionGroup>
 
-              <section className="flex min-w-0 flex-col gap-2">
-                <SectionLabel>Agent Question Card — Choices</SectionLabel>
-                {allAnswered ? (
-                  <div className="flex flex-col gap-2 rounded-md border bg-card p-4 shadow-md">
-                    <span className="text-sm font-semibold">All set</span>
-                    <span className="text-xs text-muted-foreground">
-                      {answers.join(" · ")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestionIndex(0);
-                        setAnswers([]);
-                      }}
-                      className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
-                    >
-                      Ask again
-                    </button>
+                {undone ? (
+                  <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    Reverted. The meeting is back at 11 AM.
                   </div>
-                ) : (
-                  <AgentQuestionCard
-                    key={questionIndex}
-                    question={currentQuestion.question}
-                    options={currentQuestion.options}
-                    step={`${questionIndex + 1}/${QUESTIONS.length}`}
-                    onAnswer={(answer) => {
-                      setAnswers((a) => [...a, answer]);
-                      setQuestionIndex((i) => i + 1);
+                ) : undo.seconds > 0 ? (
+                  <UndoRevokeBar
+                    seconds={undo.seconds}
+                    className="w-full"
+                    onUndo={() => {
+                      undo.stop();
+                      setUndone(true);
                     }}
                   />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUndone(false);
+                      undo.restart();
+                    }}
+                    className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Window closed — replay the countdown
+                  </button>
                 )}
-              </section>
+              </div>
+
+              {allAnswered ? (
+                <div className="flex flex-col gap-2 rounded-md border bg-card p-4 shadow-md">
+                  <span className="text-sm font-semibold">All set</span>
+                  <span className="text-xs text-muted-foreground">{answers.join(" · ")}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuestionIndex(0);
+                      setAnswers([]);
+                    }}
+                    className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    Ask again
+                  </button>
+                </div>
+              ) : (
+                <AgentQuestionCard
+                  key={questionIndex}
+                  question={currentQuestion.question}
+                  options={currentQuestion.options}
+                  step={`${questionIndex + 1}/${QUESTIONS.length}`}
+                  onAnswer={(answer) => {
+                    setAnswers((a) => [...a, answer]);
+                    setQuestionIndex((i) => i + 1);
+                  }}
+                />
+              )}
             </div>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Multimodal Input Bar · Parameter Selector</SectionLabel>
+            <div className="flex flex-col gap-2">
               <MultimodalInputBar
                 style="expanded"
                 voiceState={voiceState}
                 onVoiceClick={() =>
-                  setVoiceState((s) => (s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"))
+                  setVoiceState((s) =>
+                    s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"
+                  )
                 }
                 onSubmit={setSent}
               >
@@ -416,47 +437,50 @@ export default function Home() {
                   Sent to {model.label} {model.hint}, {approvalMode.label.toLowerCase()}: “{sent}”
                 </span>
               )}
-            </section>
+            </div>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Delegation Card</SectionLabel>
+            <div className="flex flex-col gap-2">
               <DelegationCard onSubmit={(draft) => setDelegated(draft.task)} />
               {delegated && (
                 <ScheduledTaskCard style="list" title={delegated} frequency="Delegated just now" />
               )}
-            </section>
+            </div>
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>Artifact Card — generating</SectionLabel>
-              <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
-                <MessageBubble>
-                  Present the history of AI to me in chronological order, in a playful way, from
-                  beginning to end.
-                </MessageBubble>
+            <ChatPreview>
+              <MessageBubble>Should this be a deck or a single page?</MessageBubble>
+              <p className="text-sm">
+                A single page reads better for a timeline — no slide breaks cutting the
+                sequence in half. I&apos;ll lay it out left to right.
+              </p>
+              <MessageBubble>Good. Keep it light, not a lecture.</MessageBubble>
 
-                <ReasoningTimelineSummary label="Thinking process for 21s" />
-                <ReasoningTimeline
-                  title="vizualize"
-                  icon={Wrench}
-                  style="tool"
-                  detailed={false}
-                  state="done"
-                />
+              <MessageBubble>
+                Present the history of AI to me in chronological order, in a playful way, from
+                beginning to end.
+              </MessageBubble>
 
-                <p className="text-sm">The hype curve, two winters included.</p>
+              <ReasoningTimelineSummary label="Thinking process for 21s" />
+              <ReasoningTimeline
+                title="vizualize"
+                icon={Wrench}
+                style="tool"
+                detailed={false}
+                state="done"
+              />
 
-                <ArtifactCard
-                  title="AI history.svg"
-                  meta="1.2 MB"
-                  generating={generating}
-                  progress={progress}
-                  onDownload={() => setProgress(35)}
-                  downloadLabel={generating ? "Download" : "Download again"}
-                />
+              <p className="text-sm">The hype curve, two winters included.</p>
 
-                <MessageActionRow timestamp="2 hours ago" />
-              </div>
-            </section>
+              <ArtifactCard
+                title="AI history.svg"
+                meta="1.2 MB"
+                generating={generating}
+                progress={progress}
+                onDownload={() => setProgress(35)}
+                downloadLabel={generating ? "Download" : "Download again"}
+              />
+
+              <MessageActionRow timestamp="2 hours ago" />
+            </ChatPreview>
           </div>
         </main>
       </div>

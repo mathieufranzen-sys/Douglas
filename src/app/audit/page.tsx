@@ -1,6 +1,6 @@
-import { AppShell } from "@/components/agent-ux/app-shell";
-import { ActivityLogRow } from "@/components/agent-ux/activity-log-row";
-import { AgentErrorCard } from "@/components/agent-ux/agent-error-card";
+import { AppShell } from "@/components/douglas/app-shell";
+import { ActivityLogRow } from "@/components/douglas/activity-log-row";
+import { AgentErrorCard } from "@/components/douglas/agent-error-card";
 
 export default function AuditPage() {
   return (

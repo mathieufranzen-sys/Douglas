@@ -1,6 +1,6 @@
-import { AppShell } from "@/components/agent-ux/app-shell";
-import { AutonomyLevelSelector } from "@/components/agent-ux/autonomy-level-selector";
-import { ScheduledTaskCard } from "@/components/agent-ux/scheduled-task-card";
+import { AppShell } from "@/components/douglas/app-shell";
+import { AutonomyLevelSelector } from "@/components/douglas/autonomy-level-selector";
+import { ScheduledTaskCard } from "@/components/douglas/scheduled-task-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ParameterSelector,
   ParameterSelectorItem,
-} from "@/components/agent-ux/parameter-selector";
+} from "@/components/douglas/parameter-selector";
 
 export type AutonomyLevel = "suggest" | "confirm" | "autonomous";
 

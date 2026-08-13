@@ -3,7 +3,7 @@ import { RotateCcw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { RevokeTimerChip } from "@/components/agent-ux/revoke-timer-chip";
+import { RevokeTimerChip } from "@/components/douglas/revoke-timer-chip";
 
 const undoRevokeBarVariants = cva("flex items-center gap-2", {
   variants: {

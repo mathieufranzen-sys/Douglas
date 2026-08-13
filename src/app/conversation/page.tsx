@@ -1,11 +1,11 @@
-import { AppShell } from "@/components/agent-ux/app-shell";
-import { MessageBubble } from "@/components/agent-ux/message-bubble";
-import { MessageActionRow } from "@/components/agent-ux/message-action-row";
-import { ReasoningTimeline } from "@/components/agent-ux/reasoning-timeline";
-import { ArtifactCard } from "@/components/agent-ux/artifact-card";
-import { ErrorRetryChip } from "@/components/agent-ux/error-retry-chip";
-import { AgentQuestionCard } from "@/components/agent-ux/agent-question-card";
-import { MultimodalInputBar } from "@/components/agent-ux/multimodal-input-bar";
+import { AppShell } from "@/components/douglas/app-shell";
+import { MessageBubble } from "@/components/douglas/message-bubble";
+import { MessageActionRow } from "@/components/douglas/message-action-row";
+import { ReasoningTimeline } from "@/components/douglas/reasoning-timeline";
+import { ArtifactCard } from "@/components/douglas/artifact-card";
+import { ErrorRetryChip } from "@/components/douglas/error-retry-chip";
+import { AgentQuestionCard } from "@/components/douglas/agent-question-card";
+import { MultimodalInputBar } from "@/components/douglas/multimodal-input-bar";
 import { ChevronDown } from "lucide-react";
 
 export default function ConversationPage() {

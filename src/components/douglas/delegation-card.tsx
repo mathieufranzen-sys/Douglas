@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import {
   AutonomyLevelSelector,
   type AutonomyLevel,
-} from "@/components/agent-ux/autonomy-level-selector";
+} from "@/components/douglas/autonomy-level-selector";
 
 const delegationCardVariants = cva("bg-card text-card-foreground", {
   variants: {

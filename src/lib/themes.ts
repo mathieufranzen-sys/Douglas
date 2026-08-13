@@ -42,6 +42,36 @@ const DEFAULT_RADIUS = 0.625;
 
 export const THEME_PRESETS: ThemePreset[] = [
   {
+    // Douglas's own identity: shadcn's neutral greys carrying the brand indigo
+    // #493CEF as primary. First in the list, so it is what the app boots on.
+    id: "douglas",
+    label: "Douglas",
+    radius: DEFAULT_RADIUS,
+    font: "geist",
+    light: {
+      background: "oklch(1 0 0)", foreground: "oklch(0.145 0 0)",
+      card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0 0)",
+      primary: "oklch(0.503 0.253 275.5)", primaryForeground: "oklch(0.985 0 0)",
+      secondary: "oklch(0.97 0 0)", secondaryForeground: "oklch(0.205 0 0)",
+      muted: "oklch(0.97 0 0)", mutedForeground: "oklch(0.556 0 0)",
+      accent: "oklch(0.97 0 0)", accentForeground: "oklch(0.205 0 0)",
+      destructive: "oklch(0.577 0.245 27.325)",
+      border: "oklch(0.922 0 0)", input: "oklch(0.922 0 0)",
+      ring: "oklch(0.503 0.253 275.5)",
+    },
+    dark: {
+      background: "oklch(0.145 0 0)", foreground: "oklch(0.985 0 0)",
+      card: "oklch(0.205 0 0)", cardForeground: "oklch(0.985 0 0)",
+      primary: "oklch(0.503 0.253 275.5)", primaryForeground: "oklch(0.985 0 0)",
+      secondary: "oklch(0.269 0 0)", secondaryForeground: "oklch(0.985 0 0)",
+      muted: "oklch(0.269 0 0)", mutedForeground: "oklch(0.708 0 0)",
+      accent: "oklch(0.269 0 0)", accentForeground: "oklch(0.985 0 0)",
+      destructive: "oklch(0.704 0.191 22.216)",
+      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)",
+      ring: "oklch(0.503 0.253 275.5)",
+    },
+  },
+  {
     id: "neutral",
     label: "Neutral",
     radius: DEFAULT_RADIUS,

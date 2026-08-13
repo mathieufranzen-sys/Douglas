@@ -6,7 +6,7 @@ import { Plus, Paperclip, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { VoiceStatusPill, type VoiceState } from "@/components/agent-ux/voice-status-pill";
+import { VoiceStatusPill, type VoiceState } from "@/components/douglas/voice-status-pill";
 
 const multimodalInputBarVariants = cva("bg-card text-card-foreground transition-colors", {
   variants: {
