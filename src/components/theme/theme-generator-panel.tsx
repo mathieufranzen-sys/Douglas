@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RotateCcw, ExternalLink } from "lucide-react";
+import { RotateCcw, ExternalLink, Maximize, Minimize } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { toHex, hexToOklch } from "@/lib/color";
@@ -94,9 +94,31 @@ export function DouglasTitleBar({ className }: { className?: string }) {
   );
 }
 
+/** Tracks the browser's real fullscreen state, since the user can also exit it with Esc. */
+function useFullscreen() {
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggle = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen();
+    }
+  };
+
+  return { isFullscreen, toggle };
+}
+
 export function DouglasUtilityBar({ className }: { className?: string }) {
-  const { mode, setMode, presetId, setPresetId } = useThemeCustomizer();
+  const { presets, presetId, setPresetId, mode, setMode } = useThemeCustomizer();
   const pathname = usePathname();
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   return (
     <div className={cn("relative flex h-14 w-full flex-row items-center justify-end gap-4 border-b bg-background px-4", className)}>
@@ -120,6 +142,19 @@ export function DouglasUtilityBar({ className }: { className?: string }) {
 
       <div className="h-5 w-px bg-border" aria-hidden />
 
+      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
+        <SelectTrigger className="h-9 w-40 text-sm" aria-label="Theme">
+          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {presets.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <div className="flex items-center gap-2">
         <Switch
           size="sm"
@@ -129,6 +164,15 @@ export function DouglasUtilityBar({ className }: { className?: string }) {
         />
         <span className="text-xs text-muted-foreground">{mode === "dark" ? "Dark" : "Light"}</span>
       </div>
+
+      <Button
+        variant="outline"
+        size="icon-sm"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {isFullscreen ? <Minimize strokeWidth={1.75} /> : <Maximize strokeWidth={1.75} />}
+      </Button>
 
       <Button variant="outline" size="sm" onClick={() => setPresetId(presetId)}>
         <RotateCcw data-icon="inline-start" strokeWidth={1.75} />
@@ -183,7 +227,6 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
   const {
     presets,
     presetId,
-    setPresetId,
     mode,
     radius,
     setRadius,
@@ -204,35 +247,24 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
 
   return (
     <aside
-      className={cn("flex w-full flex-col gap-4 border-r bg-background p-3", className)}
+      className={cn("flex h-full min-h-0 w-full flex-col gap-4 overflow-hidden border-r bg-background p-3", className)}
       aria-label="Theme"
     >
-      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
-        <SelectTrigger className="h-8 w-full text-xs" aria-label="Theme">
-          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {presets.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="text-xs">
-              {p.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Tabs defaultValue="colors" className="flex-1 overflow-hidden">
-        <TabsList className="w-full">
+      {/* Only this column scrolls — the tab list below stays put; the preset picker lives
+          in the utility bar now, next to the pages and Reset. */}
+      <Tabs defaultValue="colors" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <TabsList className="w-full shrink-0">
           <TabsTrigger value="colors">Color</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="radius">Radius</TabsTrigger>
         </TabsList>
-        <TabsContent value="colors" className="overflow-y-auto">
+        <TabsContent value="colors" className="min-h-0 flex-1 overflow-y-auto pr-1">
           <ColorGroups valueFor={valueFor} setValueFor={setValueFor} />
         </TabsContent>
-        <TabsContent value="typography">
+        <TabsContent value="typography" className="min-h-0 flex-1 overflow-y-auto pr-1">
           <FontField font={font} setFont={setFont} />
         </TabsContent>
-        <TabsContent value="radius">
+        <TabsContent value="radius" className="min-h-0 flex-1 overflow-y-auto pr-1">
           <RadiusField radius={radius} setRadius={setRadius} />
         </TabsContent>
       </Tabs>

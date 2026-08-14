@@ -53,7 +53,7 @@ export default function BuildConversationScreen() {
   }, []);
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex min-w-0 flex-1 flex-col border-b">
       {/* Workspace bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
         <Avatar className="size-6 shrink-0">

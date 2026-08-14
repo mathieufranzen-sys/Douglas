@@ -126,7 +126,7 @@ function FileChip({ label, tone = "muted" }: { label: string; tone?: "muted" | "
 export default function InboxAgentScreen() {
   const [activeThread, setActiveThread] = React.useState(THREADS[0].id);
   const [permission, setPermission] = React.useState(PERMISSIONS[0]);
-  const [reply, setReply] = React.useState("Désolé je vais être en retard de 10 minutes");
+  const [reply, setReply] = React.useState("Sorry, I'm going to be 10 minutes late");
   const [approval, setApproval] = React.useState<"idle" | "running" | "done">("idle");
 
   React.useEffect(() => {
@@ -136,7 +136,7 @@ export default function InboxAgentScreen() {
   }, [approval]);
 
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 border-b">
       <ScreenNav
         title="Douglas"
         badge={<ChevronDown className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />}
@@ -327,8 +327,7 @@ export default function InboxAgentScreen() {
         </SummaryRow>
         <SummaryRow label="Files">
           <FileChip label="CR meeting" />
-          <FileChip label="CR meeting" />
-          <FileChip label="Carpet Brand kit" tone="primary" />
+          <FileChip label="Brand kit" tone="primary" />
         </SummaryRow>
         <SummaryRow label="Permission">
           <ParameterSelector label={permission.label} variant="outline">

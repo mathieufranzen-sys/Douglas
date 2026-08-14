@@ -87,7 +87,7 @@ export default function PromptInputScreen() {
   const [submitted, setSubmitted] = React.useState<string | null>(null);
 
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 border-b">
       <ScreenNav
         title="Douglas"
         badge={
