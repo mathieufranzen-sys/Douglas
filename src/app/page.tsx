@@ -271,7 +271,7 @@ export default function Home() {
 
         {/* Reccurent task — a scheduled task bundled with the scopes it needs,
             reviewed and confirmed in one sitting rather than two separate screens. */}
-        <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+        <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex flex-col gap-1">
             <span className="text-sm font-semibold">Reccurent task</span>
             <p className="text-xs text-muted-foreground">
@@ -345,7 +345,7 @@ export default function Home() {
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex flex-col gap-3">
           {allAnswered ? (
-            <div className="flex flex-col gap-2 rounded-md border bg-card p-4 shadow-md">
+            <div className="flex flex-col gap-2 rounded-md border bg-card p-4 shadow-sm">
               <span className="text-sm font-semibold">All set</span>
               <span className="text-xs text-muted-foreground">{answers.join(" · ")}</span>
               <button

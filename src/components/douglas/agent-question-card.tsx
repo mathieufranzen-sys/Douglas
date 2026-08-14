@@ -69,7 +69,7 @@ export function AgentQuestionCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3.5 rounded-md border bg-card p-4 text-card-foreground shadow-md",
+        "flex flex-col gap-3.5 rounded-md border bg-card p-4 text-card-foreground shadow-sm",
         className
       )}
     >

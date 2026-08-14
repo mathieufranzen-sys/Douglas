@@ -17,9 +17,9 @@ const delegationCardVariants = cva("bg-card text-card-foreground", {
   variants: {
     style: {
       // Formulaire complet bloquant.
-      modal: "flex flex-col gap-4 rounded-xl border p-6 shadow-lg",
+      modal: "flex flex-col gap-4 rounded-xl border p-6 shadow-sm",
       // Formulaire embarqué dans le flux.
-      inline: "flex flex-col gap-4 rounded-lg border p-4",
+      inline: "flex flex-col gap-4 rounded-lg border p-4 shadow-sm",
       // Délégation rapide sur une ligne.
       compact: "flex items-center gap-2 rounded-lg border p-2",
     },

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 const artifactCardVariants = cva("bg-card text-card-foreground", {
   variants: {
     style: {
-      card: "flex flex-col gap-3 rounded-xl border p-3",
+      card: "flex flex-col gap-3 rounded-xl border p-3 shadow-sm",
       compact: "flex items-center gap-3 rounded-lg border px-3 py-2",
       inline: "inline-flex items-center gap-2 rounded-full border px-3 py-1.5",
     },

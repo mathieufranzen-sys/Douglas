@@ -8,10 +8,10 @@ const agentErrorCardVariants = cva("text-foreground", {
   variants: {
     style: {
       // Full explanation with two ways out.
-      card: "flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4",
+      card: "flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 shadow-sm",
       // Floating, transient.
       toast:
-        "flex w-fit items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 shadow-md",
+        "flex w-fit items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 shadow-sm",
       // One line inside the message flow.
       inline: "flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2",
       // Full-width strip at the top of a region.

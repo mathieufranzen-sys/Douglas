@@ -63,7 +63,7 @@ function labelForKey(key: keyof ThemeVars): string {
 
 export function DouglasTitleBar({ className }: { className?: string }) {
   return (
-    <header className={cn("flex h-16 items-center justify-between border-b bg-background px-4", className)}>
+    <header className={cn("flex h-16 items-center justify-between overflow-hidden border-b bg-background px-4", className)}>
       <div className="flex items-baseline gap-2.5">
         <span className="text-sm font-semibold tracking-tight">Douglas</span>
         <span className="hidden text-xs text-muted-foreground sm:inline">
@@ -116,12 +116,12 @@ function useFullscreen() {
 }
 
 export function DouglasUtilityBar({ className }: { className?: string }) {
-  const { presets, presetId, setPresetId, mode, setMode } = useThemeCustomizer();
+  const { presetId, setPresetId, mode, setMode } = useThemeCustomizer();
   const pathname = usePathname();
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   return (
-    <div className={cn("relative flex h-14 w-full flex-row items-center justify-end gap-4 border-b bg-background px-4", className)}>
+    <div className={cn("relative flex h-14 w-full flex-row items-center justify-end gap-4 overflow-hidden border-b bg-background px-4", className)}>
       <nav className="flex items-center gap-1">
         {SCREENS.map((screen) => (
           <Link
@@ -141,19 +141,6 @@ export function DouglasUtilityBar({ className }: { className?: string }) {
       </nav>
 
       <div className="h-5 w-px bg-border" aria-hidden />
-
-      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
-        <SelectTrigger className="h-9 w-40 text-sm" aria-label="Theme">
-          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {presets.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
 
       <div className="flex items-center gap-2">
         <Switch
@@ -227,6 +214,7 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
   const {
     presets,
     presetId,
+    setPresetId,
     mode,
     radius,
     setRadius,
@@ -250,8 +238,24 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
       className={cn("flex h-full min-h-0 w-full flex-col gap-4 overflow-hidden border-r bg-background p-3", className)}
       aria-label="Theme"
     >
-      {/* Only this column scrolls — the tab list below stays put; the preset picker lives
-          in the utility bar now, next to the pages and Reset. */}
+      {/* The preset picker stays at the same level as the color/typography/radius
+          choices below it — same panel, same column — instead of living in the
+          utility bar with unrelated controls. */}
+      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
+        <SelectTrigger className="h-9 w-full shrink-0 text-sm" aria-label="Theme">
+          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {presets.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Only this column scrolls — the preset picker above and the tab list below
+          stay put. */}
       <Tabs defaultValue="colors" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="colors">Color</TabsTrigger>

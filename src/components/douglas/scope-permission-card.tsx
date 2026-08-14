@@ -10,7 +10,7 @@ const scopePermissionCardVariants = cva("flex items-center bg-card", {
   variants: {
     style: {
       // Label + description + switch: the settings-page presentation.
-      default: "gap-3 rounded-lg border p-3",
+      default: "gap-3 rounded-lg border p-3 shadow-sm",
       // Label + switch only.
       compact: "gap-3 rounded-lg border px-3 py-2",
       // Category glyph + label + switch, sized to stack inside ScopePermissionGroup.
@@ -72,7 +72,7 @@ export function ScopePermissionGroup({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-lg border *:not-last:border-b",
+        "flex flex-col overflow-hidden rounded-lg border shadow-sm *:not-last:border-b",
         className
       )}
     >

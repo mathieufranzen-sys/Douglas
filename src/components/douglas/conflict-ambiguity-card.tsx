@@ -51,7 +51,7 @@ export function ConflictAmbiguityCard({
     return (
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3",
+          "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 shadow-sm",
           className
         )}
       >
@@ -74,7 +74,7 @@ export function ConflictAmbiguityCard({
     return (
       <div
         className={cn(
-          "flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3",
+          "flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 shadow-sm",
           className
         )}
       >
@@ -99,7 +99,7 @@ export function ConflictAmbiguityCard({
     return (
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3",
+          "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 shadow-sm",
           className
         )}
       >
@@ -129,7 +129,7 @@ export function ConflictAmbiguityCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4",
+        "flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 shadow-sm",
         className
       )}
     >

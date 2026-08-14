@@ -62,10 +62,12 @@ const SEMANTIC_DARK = {
 };
 
 // The neutral foundation every preset below builds on — only `primary`/`ring` differ.
+// `card`/`popover` sit a shade under `background` on purpose: a card with no border in
+// view (a nested block, a hover state) still has to read as a distinct surface.
 const NEUTRAL_LIGHT = {
   background: "oklch(1 0 0)", foreground: "oklch(0.145 0 0)",
-  card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0 0)",
-  popover: "oklch(1 0 0)", popoverForeground: "oklch(0.145 0 0)",
+  card: "oklch(0.97 0 0)", cardForeground: "oklch(0.145 0 0)",
+  popover: "oklch(0.97 0 0)", popoverForeground: "oklch(0.145 0 0)",
   primaryForeground: "oklch(0.985 0 0)",
   secondary: "oklch(0.97 0 0)", secondaryForeground: "oklch(0.205 0 0)",
   muted: "oklch(0.97 0 0)", mutedForeground: "oklch(0.556 0 0)",
@@ -104,6 +106,25 @@ function preset(
   };
 }
 
+// Prism, unlike the other presets, doesn't just swap `primary` over shared grays —
+// secondary and accent get real hues of their own (teal, amber), so more than one
+// color reads across the UI at once. White background throughout, replacing Azure,
+// which sat too close to Douglas's own blue-purple.
+const PRISM_LIGHT = {
+  ...NEUTRAL_LIGHT,
+  primary: "oklch(0.62 0.22 345)", primaryForeground: "oklch(0.985 0 0)",
+  secondary: "oklch(0.93 0.05 200)", secondaryForeground: "oklch(0.28 0.07 200)",
+  accent: "oklch(0.93 0.09 85)", accentForeground: "oklch(0.32 0.1 70)",
+  ring: "oklch(0.62 0.22 345)",
+};
+const PRISM_DARK = {
+  ...NEUTRAL_DARK,
+  primary: "oklch(0.7 0.2 345)", primaryForeground: "oklch(0.145 0 0)",
+  secondary: "oklch(0.28 0.06 200)", secondaryForeground: "oklch(0.9 0.05 200)",
+  accent: "oklch(0.32 0.09 80)", accentForeground: "oklch(0.92 0.08 80)",
+  ring: "oklch(0.7 0.2 345)",
+};
+
 export const THEME_PRESETS: ThemePreset[] = [
   // Douglas's own identity, #493CEF. First in the list, so it is what the app boots on.
   preset("douglas", "Douglas", "oklch(0.503 0.253 275.5)", {
@@ -121,11 +142,15 @@ export const THEME_PRESETS: ThemePreset[] = [
     font: "inter",
     radius: 1,
   }),
-  preset("azure", "Azure", "oklch(0.546 0.215 262.88)", {
-    mode: "dark",
-    font: "inter",
-    radius: 0.375,
-  }),
+  {
+    id: "prism",
+    label: "Prism",
+    mode: "light",
+    radius: 0.5,
+    font: "geist",
+    light: PRISM_LIGHT,
+    dark: PRISM_DARK,
+  },
   preset("plum", "Plum", "oklch(0.558 0.252 302.32)", {
     mode: "dark",
     font: "serif",

@@ -11,7 +11,7 @@ const undoRevokeBarVariants = cva("flex items-center gap-2", {
       inline: "rounded-md bg-muted py-1 pr-1.5 pl-3",
       chip: "w-fit rounded-full bg-muted py-1 pr-1.5 pl-3 shadow-sm",
       toast:
-        "w-fit rounded-lg border bg-popover py-1.5 pr-1.5 pl-3 text-popover-foreground shadow-md",
+        "w-fit rounded-lg border bg-popover py-1.5 pr-1.5 pl-3 text-popover-foreground shadow-sm",
       banner: "w-full rounded-md bg-muted px-3 py-2",
     },
   },

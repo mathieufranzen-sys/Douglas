@@ -10,9 +10,9 @@ const approvalModalVariants = cva("flex flex-col gap-4 bg-card text-card-foregro
   variants: {
     style: {
       // Bloquant, centré — pour les actions critiques.
-      modal: "rounded-xl border p-6 shadow-lg",
+      modal: "rounded-xl border p-6 shadow-sm",
       // Encart non bloquant dans le flux.
-      inline: "rounded-lg border p-4",
+      inline: "rounded-lg border p-4 shadow-sm",
       // Panneau latéral coulissant.
       sheet: "h-full border-l p-6",
     },

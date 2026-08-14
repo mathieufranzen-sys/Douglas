@@ -10,9 +10,9 @@ import { ConfidenceBadge, type ConfidenceLevel } from "@/components/douglas/conf
 const agentActionCardVariants = cva("bg-card text-card-foreground", {
   variants: {
     style: {
-      card: "flex flex-col gap-3 rounded-lg border p-4",
+      card: "flex flex-col gap-3 rounded-lg border p-4 shadow-sm",
       compact: "flex items-center gap-3 rounded-lg border px-3 py-2",
-      detailed: "flex flex-col gap-3 rounded-xl border p-4",
+      detailed: "flex flex-col gap-3 rounded-xl border p-4 shadow-sm",
     },
   },
   defaultVariants: { style: "card" },

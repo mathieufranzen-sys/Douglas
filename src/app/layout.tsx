@@ -31,16 +31,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // `dark` up front so the first paint is already dark, before the provider runs.
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="h-full overflow-hidden">
         <ThemeCustomizerProvider>
           <TooltipProvider>
-            {/* Chrome is shared: every screen below is themed live by the sidebar. */}
-            <div className="flex min-h-screen flex-col bg-background">
-              <DouglasTitleBar />
-              <DouglasUtilityBar />
-              <div className="flex flex-1 lg:flex-row">
-                <ThemeGeneratorSidebar className="hidden lg:sticky lg:top-[7.5rem] lg:flex lg:h-[calc(100vh-7.5rem)] lg:w-[280px] lg:shrink-0" />
-                <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+            {/* Chrome is shared: every screen below is themed live by the sidebar. The
+                shell is pinned to the viewport height so the bars and the sidebar never
+                scroll themselves — only <main> does. */}
+            <div className="flex h-screen flex-col bg-background">
+              <DouglasTitleBar className="shrink-0" />
+              <DouglasUtilityBar className="shrink-0" />
+              <div className="flex min-h-0 flex-1 lg:flex-row">
+                <ThemeGeneratorSidebar className="hidden lg:flex lg:h-full lg:w-[280px] lg:shrink-0" />
+                <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
               </div>
             </div>
           </TooltipProvider>
