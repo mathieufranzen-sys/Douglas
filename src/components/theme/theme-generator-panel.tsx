@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { RotateCcw, ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -40,7 +41,8 @@ const FIGMA_URL =
 const PORTFOLIO_URL = "#";
 
 const SCREENS = [
-  { href: "/", label: "Prompt Input" },
+  { href: "/", label: "Components" },
+  { href: "/prompt", label: "Prompt Input" },
   { href: "/inbox", label: "Inbox Agent" },
   { href: "/build", label: "Build Conversation" },
 ];
@@ -94,6 +96,7 @@ export function DouglasTitleBar({ className }: { className?: string }) {
 
 export function DouglasUtilityBar({ className }: { className?: string }) {
   const { mode, setMode, presetId, setPresetId } = useThemeCustomizer();
+  const pathname = usePathname();
 
   return (
     <div className={cn("relative flex h-14 w-full flex-row items-center justify-end gap-4 border-b bg-background px-4", className)}>
@@ -102,7 +105,13 @@ export function DouglasUtilityBar({ className }: { className?: string }) {
           <Link
             key={screen.href}
             href={screen.href}
-            className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-current={pathname === screen.href ? "page" : undefined}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              pathname === screen.href
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
           >
             {screen.label}
           </Link>
