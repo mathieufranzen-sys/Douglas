@@ -11,7 +11,6 @@ import {
   Wrench,
   AppWindow,
   ListChecks,
-  Send,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -27,15 +26,9 @@ import {
   ParameterSelector,
   ParameterSelectorItem,
 } from "@/components/douglas/parameter-selector";
-import { AutonomyLevelSelector } from "@/components/douglas/autonomy-level-selector";
 import { DelegationCard } from "@/components/douglas/delegation-card";
 import { ScheduledTaskCard } from "@/components/douglas/scheduled-task-card";
 import { AgentErrorCard } from "@/components/douglas/agent-error-card";
-import { AgentActionCard } from "@/components/douglas/agent-action-card";
-import { ConflictAmbiguityCard } from "@/components/douglas/conflict-ambiguity-card";
-import { ActivityLogRow } from "@/components/douglas/activity-log-row";
-import { ErrorRetryChip } from "@/components/douglas/error-retry-chip";
-import { AgentStatusIndicator } from "@/components/douglas/agent-status-indicator";
 import {
   ReasoningTimeline,
   ReasoningTimelineSummary,
@@ -45,6 +38,7 @@ import { SourceChip } from "@/components/douglas/source-chip";
 import { MessageBubble } from "@/components/douglas/message-bubble";
 import { MessageActionRow } from "@/components/douglas/message-action-row";
 import { ConfidenceBadge } from "@/components/douglas/confidence-badge";
+import { Button } from "@/components/ui/button";
 import type { VoiceState } from "@/components/douglas/voice-status-pill";
 
 const UNDO_WINDOW_SECONDS = 5;
@@ -71,19 +65,6 @@ const APPROVAL_MODES = [
   { id: "manual", label: "Manually approve", description: "Nothing runs without a click." },
   { id: "safe", label: "Act on safe changes", description: "Reversible actions run alone." },
   { id: "auto", label: "Act autonomously", description: "The agent decides and reports." },
-];
-
-const DUPLICATE_CONTACTS = [
-  { id: "crm", label: "Ada Lovelace — Workday", description: "Updated 3 days ago" },
-  { id: "figma", label: "Ada Lovelace — Employee CRM", description: "Updated 2 hours ago" },
-];
-
-const ACTIVITY: { actor: "agent" | "user"; action: string; timestamp: string; isError?: boolean }[] = [
-  { actor: "user", action: "Asked to update the employee CRM", timestamp: "11:02" },
-  { actor: "agent", action: "Read 12 records from Workday", timestamp: "11:02" },
-  { actor: "agent", action: "Wrote 12 contacts to Employee CRM", timestamp: "11:04" },
-  { actor: "agent", action: "Couldn't reach the Figma API", timestamp: "11:05", isError: true },
-  { actor: "agent", action: "Generated 12 business cards", timestamp: "11:06" },
 ];
 
 /** Countdown that stops at zero and can be rearmed. */
@@ -150,7 +131,7 @@ function ChatPreview({
   );
 }
 
-export default function ComponentsScreen() {
+export default function Home() {
   // Approval modal
   const [approvalState, setApprovalState] = React.useState<"idle" | "running" | "done">("idle");
 
@@ -185,17 +166,6 @@ export default function ComponentsScreen() {
   const [retrying, setRetrying] = React.useState(false);
   const [errorCleared, setErrorCleared] = React.useState(false);
 
-  // Standalone action card
-  const [actionState, setActionState] = React.useState<"pending" | "approved" | "rejected">(
-    "pending"
-  );
-
-  // Duplicate-contact conflict
-  const [resolved, setResolved] = React.useState<string | null>(null);
-
-  // Chip-level retry inside the thread
-  const [chipRetried, setChipRetried] = React.useState(false);
-
   // Artifact generation
   const [progress, setProgress] = React.useState(35);
   const generating = progress < 100;
@@ -224,28 +194,12 @@ export default function ComponentsScreen() {
   const currentQuestion = QUESTIONS[Math.min(questionIndex, QUESTIONS.length - 1)];
   const allAnswered = questionIndex >= QUESTIONS.length;
 
+  // The title bar, utility bar and theme sidebar live in the root layout, so this page
+  // renders its grid only.
   return (
-    <div className="grid flex-1 grid-cols-1 items-start gap-6 p-6 xl:grid-cols-[minmax(0,466px)_minmax(0,1fr)]">
+    <div className="grid flex-1 grid-cols-1 items-start gap-6 p-6 xl:grid-cols-2">
       {/* ── Left column ─────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-col gap-6">
-        <ApprovalModal
-          title="Confirm irreversible action"
-          description="This action can't be undone once executed. Review the change before confirming."
-          confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
-          loading={approvalState === "running"}
-          onConfirm={() => setApprovalState("running")}
-          onCancel={() => setApprovalState("idle")}
-        >
-          <ApprovalModalDiff
-            title="Scheduled meeting"
-            before="Oct 22 • 11 AM"
-            after="Oct 22 • 11:10 AM"
-            icon={Calendar}
-          />
-        </ApprovalModal>
-
-        <AutonomyLevelSelector />
-
         <ChatPreview>
           <MessageBubble>Where did the new starter list end up?</MessageBubble>
           <p className="text-sm">
@@ -280,15 +234,6 @@ export default function ComponentsScreen() {
             />
           </div>
 
-          {chipRetried ? (
-            <AgentStatusIndicator status="acting" label="Retrying the card export…" />
-          ) : (
-            <ErrorRetryChip
-              label="Business card export failed"
-              onRetry={() => setChipRetried(true)}
-            />
-          )}
-
           <p className="text-sm">
             You now have 12 new employee contacts in the Employee CRM. Each has its own
             personalised business card on Figma.
@@ -308,52 +253,42 @@ export default function ComponentsScreen() {
           </div>
         </ChatPreview>
 
-        <ScheduledTaskCard
-          title="Weekly competitor price check"
-          description="Tracks 3 competitor sites and flags price changes."
-          frequency="Every Monday at 7:00 AM"
-          status={taskEnabled ? "Next run in 3 days" : "Paused"}
-          enabled={taskEnabled}
-          onEnabledChange={setTaskEnabled}
-        />
-
-        {errorCleared ? (
-          <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Meeting moved on the second attempt.
-          </div>
-        ) : (
-          <AgentErrorCard
-            style="banner"
-            title="Coundn't move the meeting"
-            retryLabel={retrying ? "Retrying…" : "Retry"}
-            onRetry={() => setRetrying(true)}
+        <ApprovalModal
+          title="Confirm irreversible action"
+          description="This action can't be undone once executed. Review the change before confirming."
+          confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
+          loading={approvalState === "running"}
+          onConfirm={() => setApprovalState("running")}
+          onCancel={() => setApprovalState("idle")}
+        >
+          <ApprovalModalDiff
+            title="Scheduled meeting"
+            before="Oct 22 • 11 AM"
+            after="Oct 22 • 11:10 AM"
+            icon={Calendar}
           />
-        )}
+        </ApprovalModal>
 
-        {/* The activity log: the same run, after the fact. */}
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-semibold">Activity</span>
-            <AgentStatusIndicator status="idle" variant="outline" />
+        {/* Reccurent task — a scheduled task bundled with the scopes it needs,
+            reviewed and confirmed in one sitting rather than two separate screens. */}
+        <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold">Reccurent task</span>
+            <p className="text-xs text-muted-foreground">
+              Tracks 3 competitor sites and flags price changes.
+            </p>
           </div>
-          <div className="flex flex-col">
-            {ACTIVITY.map((entry) => (
-              <ActivityLogRow
-                key={entry.action}
-                actor={entry.actor}
-                action={entry.action}
-                timestamp={entry.timestamp}
-                isError={entry.isError}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {/* ── Right column ────────────────────────────────────────────── */}
-      <div className="flex min-w-0 flex-col gap-6">
-        <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(0,248px)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col gap-6">
+          <ScheduledTaskCard
+            title="Weekly competitor price check"
+            description="Tracks 3 competitor sites and flags price changes."
+            frequency="Every Monday at 7:00 AM"
+            status={taskEnabled ? "Next run in 3 days" : "Paused"}
+            enabled={taskEnabled}
+            onEnabledChange={setTaskEnabled}
+          />
+
+          <div className="relative">
             <ScopePermissionGroup>
               {SCOPES.map((scope) => (
                 <ScopePermissionCard
@@ -367,33 +302,48 @@ export default function ComponentsScreen() {
               ))}
             </ScopePermissionGroup>
 
-            {undone ? (
-              <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-                Reverted. The meeting is back at 11 AM.
+            {!undone && undo.seconds > 0 && (
+              <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
+                <UndoRevokeBar
+                  seconds={undo.seconds}
+                  onUndo={() => {
+                    undo.stop();
+                    setUndone(true);
+                  }}
+                />
               </div>
-            ) : undo.seconds > 0 ? (
-              <UndoRevokeBar
-                seconds={undo.seconds}
-                className="w-full"
-                onUndo={() => {
-                  undo.stop();
-                  setUndone(true);
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setUndone(false);
-                  undo.restart();
-                }}
-                className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Window closed — replay the countdown
-              </button>
             )}
           </div>
 
+          {undone ? (
+            <span className="text-xs text-muted-foreground">
+              Reverted. The meeting is back at 11 AM.
+            </span>
+          ) : undo.seconds === 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setUndone(false);
+                undo.restart();
+              }}
+              className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Window closed — replay the countdown
+            </button>
+          ) : null}
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm">
+              Cancel
+            </Button>
+            <Button size="sm">Run</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right column ────────────────────────────────────────────── */}
+      <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex flex-col gap-3">
           {allAnswered ? (
             <div className="flex flex-col gap-2 rounded-md border bg-card p-4 shadow-md">
               <span className="text-sm font-semibold">All set</span>
@@ -421,52 +371,7 @@ export default function ComponentsScreen() {
               }}
             />
           )}
-        </div>
 
-        <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-          <AgentActionCard
-            title="Send the onboarding recap"
-            description="One email to the 12 new starters, with their business card attached."
-            icon={Send}
-            confidence="medium"
-            parameters={[
-              { label: "Recipients", value: "12 new starters" },
-              { label: "Attachment", value: "business-card.pdf" },
-            ]}
-            actionRow={actionState === "pending" ? "triple" : "revoke"}
-            actionProps={{
-              confirmLabel: "Send",
-              onConfirm: () => setActionState("approved"),
-              onReject: () => setActionState("rejected"),
-              onRevoke: () => setActionState("pending"),
-            }}
-          />
-
-          {resolved ? (
-            <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
-              <span className="text-sm font-semibold">Conflict resolved</span>
-              <span className="text-xs text-muted-foreground">
-                Keeping {DUPLICATE_CONTACTS.find((c) => c.id === resolved)?.label}.
-              </span>
-              <button
-                type="button"
-                onClick={() => setResolved(null)}
-                className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
-              >
-                Ask again
-              </button>
-            </div>
-          ) : (
-            <ConflictAmbiguityCard
-              title="Two records match “Ada Lovelace”"
-              description="Pick the one to treat as the source of truth before the write."
-              options={DUPLICATE_CONTACTS}
-              onSelect={setResolved}
-            />
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
           <MultimodalInputBar
             style="expanded"
             voiceState={voiceState}
@@ -547,12 +452,21 @@ export default function ComponentsScreen() {
             downloadLabel={generating ? "Download" : "Download again"}
           />
 
-          {generating ? (
-            <AgentStatusIndicator status="acting" label="Rendering the timeline…" />
-          ) : (
-            <MessageActionRow timestamp="2 hours ago" />
-          )}
+          <MessageActionRow timestamp="2 hours ago" />
         </ChatPreview>
+
+        {errorCleared ? (
+          <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+            Meeting moved on the second attempt.
+          </div>
+        ) : (
+          <AgentErrorCard
+            style="banner"
+            title="Coundn't move the meeting"
+            retryLabel={retrying ? "Retrying…" : "Retry"}
+            onRetry={() => setRetrying(true)}
+          />
+        )}
       </div>
     </div>
   );
