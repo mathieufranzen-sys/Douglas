@@ -1,14 +1,17 @@
-// Base color values below are shadcn/ui's own official presets, fetched directly from
-// https://ui.shadcn.com/r/colors/<name>.json — nothing invented here. These are the exact
-// tokens the shadcn CLI writes into your project when you pick a given base color.
-// The "Primary override" control in the customizer panel is the only place a custom
-// accent color gets layered on top, and only when someone explicitly picks one.
+// Five curated themes for presenting the Douglas design system, the way tweakcn ships a
+// handful of built-in themes rather than a raw shadcn base-colour list. Each keeps the
+// same neutral foundation (background/card/muted/border…) and swaps only the brand
+// accent, so every component reads consistently no matter which one is active.
+// The "Primary override" control in the sidebar layers a custom accent on top of
+// whichever preset is active, without touching any of its other tokens.
 
 export type ThemeVars = {
   background: string;
   foreground: string;
   card: string;
   cardForeground: string;
+  popover: string;
+  popoverForeground: string;
   primary: string;
   primaryForeground: string;
   secondary: string;
@@ -18,6 +21,11 @@ export type ThemeVars = {
   accent: string;
   accentForeground: string;
   destructive: string;
+  destructiveForeground: string;
+  warning: string;
+  warningForeground: string;
+  info: string;
+  infoForeground: string;
   border: string;
   input: string;
   ring: string;
@@ -26,7 +34,9 @@ export type ThemeVars = {
 export type ThemePreset = {
   id: string;
   label: string;
-  radius: number; // rem — shadcn's own default across every base color
+  /** A theme is a whole look: accent colour, light-or-dark, typeface and radius. */
+  mode: "light" | "dark";
+  radius: number; // rem
   font: string;
   light: ThemeVars;
   dark: ThemeVars;
@@ -40,219 +50,87 @@ export const FONT_STACKS: Record<string, string> = {
 
 const DEFAULT_RADIUS = 0.625;
 
+// Shared across every preset: a warning/info pair should read as "caution" or
+// "informational" regardless of which brand accent is active.
+const SEMANTIC_LIGHT = {
+  warning: "oklch(0.554 0.135 66.442)", warningForeground: "oklch(0.985 0 0)",
+  info: "oklch(0.546 0.245 262.881)", infoForeground: "oklch(0.985 0 0)",
+};
+const SEMANTIC_DARK = {
+  warning: "oklch(0.769 0.146 70.08)", warningForeground: "oklch(0.216 0.006 56.043)",
+  info: "oklch(0.707 0.165 254.624)", infoForeground: "oklch(0.216 0.006 56.043)",
+};
+
+// The neutral foundation every preset below builds on — only `primary`/`ring` differ.
+const NEUTRAL_LIGHT = {
+  background: "oklch(1 0 0)", foreground: "oklch(0.145 0 0)",
+  card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0 0)",
+  popover: "oklch(1 0 0)", popoverForeground: "oklch(0.145 0 0)",
+  primaryForeground: "oklch(0.985 0 0)",
+  secondary: "oklch(0.97 0 0)", secondaryForeground: "oklch(0.205 0 0)",
+  muted: "oklch(0.97 0 0)", mutedForeground: "oklch(0.556 0 0)",
+  accent: "oklch(0.97 0 0)", accentForeground: "oklch(0.205 0 0)",
+  destructive: "oklch(0.577 0.245 27.325)", destructiveForeground: "oklch(0.985 0 0)",
+  border: "oklch(0.922 0 0)", input: "oklch(0.922 0 0)",
+  ...SEMANTIC_LIGHT,
+};
+const NEUTRAL_DARK = {
+  background: "oklch(0.145 0 0)", foreground: "oklch(0.985 0 0)",
+  card: "oklch(0.205 0 0)", cardForeground: "oklch(0.985 0 0)",
+  popover: "oklch(0.205 0 0)", popoverForeground: "oklch(0.985 0 0)",
+  primaryForeground: "oklch(0.985 0 0)",
+  secondary: "oklch(0.269 0 0)", secondaryForeground: "oklch(0.985 0 0)",
+  muted: "oklch(0.269 0 0)", mutedForeground: "oklch(0.708 0 0)",
+  accent: "oklch(0.269 0 0)", accentForeground: "oklch(0.985 0 0)",
+  destructive: "oklch(0.704 0.191 22.216)", destructiveForeground: "oklch(0.985 0 0)",
+  border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)",
+  ...SEMANTIC_DARK,
+};
+
+function preset(
+  id: string,
+  label: string,
+  primary: string,
+  look: { mode: "light" | "dark"; font: string; radius: number }
+): ThemePreset {
+  return {
+    id,
+    label,
+    mode: look.mode,
+    radius: look.radius,
+    font: look.font,
+    light: { ...NEUTRAL_LIGHT, primary, ring: primary },
+    dark: { ...NEUTRAL_DARK, primary, ring: primary },
+  };
+}
+
 export const THEME_PRESETS: ThemePreset[] = [
-  {
-    // Douglas's own identity: shadcn's neutral greys carrying the brand indigo
-    // #493CEF as primary. First in the list, so it is what the app boots on.
-    id: "douglas",
-    label: "Douglas",
-    radius: DEFAULT_RADIUS,
+  // Douglas's own identity, #493CEF. First in the list, so it is what the app boots on.
+  preset("douglas", "Douglas", "oklch(0.503 0.253 275.5)", {
+    mode: "dark",
     font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.145 0 0)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0 0)",
-      primary: "oklch(0.503 0.253 275.5)", primaryForeground: "oklch(0.985 0 0)",
-      secondary: "oklch(0.97 0 0)", secondaryForeground: "oklch(0.205 0 0)",
-      muted: "oklch(0.97 0 0)", mutedForeground: "oklch(0.556 0 0)",
-      accent: "oklch(0.97 0 0)", accentForeground: "oklch(0.205 0 0)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.922 0 0)", input: "oklch(0.922 0 0)",
-      ring: "oklch(0.503 0.253 275.5)",
-    },
-    dark: {
-      background: "oklch(0.145 0 0)", foreground: "oklch(0.985 0 0)",
-      card: "oklch(0.205 0 0)", cardForeground: "oklch(0.985 0 0)",
-      primary: "oklch(0.503 0.253 275.5)", primaryForeground: "oklch(0.985 0 0)",
-      secondary: "oklch(0.269 0 0)", secondaryForeground: "oklch(0.985 0 0)",
-      muted: "oklch(0.269 0 0)", mutedForeground: "oklch(0.708 0 0)",
-      accent: "oklch(0.269 0 0)", accentForeground: "oklch(0.985 0 0)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)",
-      ring: "oklch(0.503 0.253 275.5)",
-    },
-  },
-  {
-    id: "neutral",
-    label: "Neutral",
     radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.145 0 0)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0 0)",
-      primary: "oklch(0.205 0 0)", primaryForeground: "oklch(0.985 0 0)",
-      secondary: "oklch(0.97 0 0)", secondaryForeground: "oklch(0.205 0 0)",
-      muted: "oklch(0.97 0 0)", mutedForeground: "oklch(0.556 0 0)",
-      accent: "oklch(0.97 0 0)", accentForeground: "oklch(0.205 0 0)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.922 0 0)", input: "oklch(0.922 0 0)", ring: "oklch(0.708 0 0)",
-    },
-    dark: {
-      background: "oklch(0.145 0 0)", foreground: "oklch(0.985 0 0)",
-      card: "oklch(0.205 0 0)", cardForeground: "oklch(0.985 0 0)",
-      primary: "oklch(0.922 0 0)", primaryForeground: "oklch(0.205 0 0)",
-      secondary: "oklch(0.269 0 0)", secondaryForeground: "oklch(0.985 0 0)",
-      muted: "oklch(0.269 0 0)", mutedForeground: "oklch(0.708 0 0)",
-      accent: "oklch(0.269 0 0)", accentForeground: "oklch(0.985 0 0)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.556 0 0)",
-    },
-  },
-  {
-    id: "zinc",
-    label: "Zinc",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.141 0.005 285.823)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.141 0.005 285.823)",
-      primary: "oklch(0.21 0.006 285.885)", primaryForeground: "oklch(0.985 0 0)",
-      secondary: "oklch(0.967 0.001 286.375)", secondaryForeground: "oklch(0.21 0.006 285.885)",
-      muted: "oklch(0.967 0.001 286.375)", mutedForeground: "oklch(0.552 0.016 285.938)",
-      accent: "oklch(0.967 0.001 286.375)", accentForeground: "oklch(0.21 0.006 285.885)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.92 0.004 286.32)", input: "oklch(0.92 0.004 286.32)", ring: "oklch(0.705 0.015 286.067)",
-    },
-    dark: {
-      background: "oklch(0.141 0.005 285.823)", foreground: "oklch(0.985 0 0)",
-      card: "oklch(0.21 0.006 285.885)", cardForeground: "oklch(0.985 0 0)",
-      primary: "oklch(0.92 0.004 286.32)", primaryForeground: "oklch(0.21 0.006 285.885)",
-      secondary: "oklch(0.274 0.006 286.033)", secondaryForeground: "oklch(0.985 0 0)",
-      muted: "oklch(0.274 0.006 286.033)", mutedForeground: "oklch(0.705 0.015 286.067)",
-      accent: "oklch(0.274 0.006 286.033)", accentForeground: "oklch(0.985 0 0)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.552 0.016 285.938)",
-    },
-  },
-  {
-    id: "stone",
-    label: "Stone",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.147 0.004 49.25)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.147 0.004 49.25)",
-      primary: "oklch(0.216 0.006 56.043)", primaryForeground: "oklch(0.985 0.001 106.423)",
-      secondary: "oklch(0.97 0.001 106.424)", secondaryForeground: "oklch(0.216 0.006 56.043)",
-      muted: "oklch(0.97 0.001 106.424)", mutedForeground: "oklch(0.553 0.013 58.071)",
-      accent: "oklch(0.97 0.001 106.424)", accentForeground: "oklch(0.216 0.006 56.043)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.923 0.003 48.717)", input: "oklch(0.923 0.003 48.717)", ring: "oklch(0.709 0.01 56.259)",
-    },
-    dark: {
-      background: "oklch(0.147 0.004 49.25)", foreground: "oklch(0.985 0.001 106.423)",
-      card: "oklch(0.216 0.006 56.043)", cardForeground: "oklch(0.985 0.001 106.423)",
-      primary: "oklch(0.923 0.003 48.717)", primaryForeground: "oklch(0.216 0.006 56.043)",
-      secondary: "oklch(0.268 0.007 34.298)", secondaryForeground: "oklch(0.985 0.001 106.423)",
-      muted: "oklch(0.268 0.007 34.298)", mutedForeground: "oklch(0.709 0.01 56.259)",
-      accent: "oklch(0.268 0.007 34.298)", accentForeground: "oklch(0.985 0.001 106.423)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.553 0.013 58.071)",
-    },
-  },
-  {
-    id: "mauve",
-    label: "Mauve",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.145 0.008 326)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.145 0.008 326)",
-      primary: "oklch(0.212 0.019 322.12)", primaryForeground: "oklch(0.985 0 0)",
-      secondary: "oklch(0.96 0.003 325.6)", secondaryForeground: "oklch(0.212 0.019 322.12)",
-      muted: "oklch(0.96 0.003 325.6)", mutedForeground: "oklch(0.542 0.034 322.5)",
-      accent: "oklch(0.96 0.003 325.6)", accentForeground: "oklch(0.212 0.019 322.12)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.922 0.005 325.62)", input: "oklch(0.922 0.005 325.62)", ring: "oklch(0.711 0.019 323.02)",
-    },
-    dark: {
-      background: "oklch(0.145 0.008 326)", foreground: "oklch(0.985 0 0)",
-      card: "oklch(0.212 0.019 322.12)", cardForeground: "oklch(0.985 0 0)",
-      primary: "oklch(0.922 0.005 325.62)", primaryForeground: "oklch(0.212 0.019 322.12)",
-      secondary: "oklch(0.263 0.024 320.12)", secondaryForeground: "oklch(0.985 0 0)",
-      muted: "oklch(0.263 0.024 320.12)", mutedForeground: "oklch(0.711 0.019 323.02)",
-      accent: "oklch(0.263 0.024 320.12)", accentForeground: "oklch(0.985 0 0)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.542 0.034 322.5)",
-    },
-  },
-  {
-    id: "olive",
-    label: "Olive",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.153 0.006 107.1)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.153 0.006 107.1)",
-      primary: "oklch(0.228 0.013 107.4)", primaryForeground: "oklch(0.988 0.003 106.5)",
-      secondary: "oklch(0.966 0.005 106.5)", secondaryForeground: "oklch(0.228 0.013 107.4)",
-      muted: "oklch(0.966 0.005 106.5)", mutedForeground: "oklch(0.58 0.031 107.3)",
-      accent: "oklch(0.966 0.005 106.5)", accentForeground: "oklch(0.228 0.013 107.4)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.93 0.007 106.5)", input: "oklch(0.93 0.007 106.5)", ring: "oklch(0.737 0.021 106.9)",
-    },
-    dark: {
-      background: "oklch(0.153 0.006 107.1)", foreground: "oklch(0.988 0.003 106.5)",
-      card: "oklch(0.228 0.013 107.4)", cardForeground: "oklch(0.988 0.003 106.5)",
-      primary: "oklch(0.93 0.007 106.5)", primaryForeground: "oklch(0.228 0.013 107.4)",
-      secondary: "oklch(0.286 0.016 107.4)", secondaryForeground: "oklch(0.988 0.003 106.5)",
-      muted: "oklch(0.286 0.016 107.4)", mutedForeground: "oklch(0.737 0.021 106.9)",
-      accent: "oklch(0.286 0.016 107.4)", accentForeground: "oklch(0.988 0.003 106.5)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.58 0.031 107.3)",
-    },
-  },
-  {
-    id: "mist",
-    label: "Mist",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.148 0.004 228.8)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.148 0.004 228.8)",
-      primary: "oklch(0.218 0.008 223.9)", primaryForeground: "oklch(0.987 0.002 197.1)",
-      secondary: "oklch(0.963 0.002 197.1)", secondaryForeground: "oklch(0.218 0.008 223.9)",
-      muted: "oklch(0.963 0.002 197.1)", mutedForeground: "oklch(0.56 0.021 213.5)",
-      accent: "oklch(0.963 0.002 197.1)", accentForeground: "oklch(0.218 0.008 223.9)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.925 0.005 214.3)", input: "oklch(0.925 0.005 214.3)", ring: "oklch(0.723 0.014 214.4)",
-    },
-    dark: {
-      background: "oklch(0.148 0.004 228.8)", foreground: "oklch(0.987 0.002 197.1)",
-      card: "oklch(0.218 0.008 223.9)", cardForeground: "oklch(0.987 0.002 197.1)",
-      primary: "oklch(0.925 0.005 214.3)", primaryForeground: "oklch(0.218 0.008 223.9)",
-      secondary: "oklch(0.275 0.011 216.9)", secondaryForeground: "oklch(0.987 0.002 197.1)",
-      muted: "oklch(0.275 0.011 216.9)", mutedForeground: "oklch(0.723 0.014 214.4)",
-      accent: "oklch(0.275 0.011 216.9)", accentForeground: "oklch(0.987 0.002 197.1)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.56 0.021 213.5)",
-    },
-  },
-  {
-    id: "taupe",
-    label: "Taupe",
-    radius: DEFAULT_RADIUS,
-    font: "geist",
-    light: {
-      background: "oklch(1 0 0)", foreground: "oklch(0.147 0.004 49.3)",
-      card: "oklch(1 0 0)", cardForeground: "oklch(0.147 0.004 49.3)",
-      primary: "oklch(0.214 0.009 43.1)", primaryForeground: "oklch(0.986 0.002 67.8)",
-      secondary: "oklch(0.96 0.002 17.2)", secondaryForeground: "oklch(0.214 0.009 43.1)",
-      muted: "oklch(0.96 0.002 17.2)", mutedForeground: "oklch(0.547 0.021 43.1)",
-      accent: "oklch(0.96 0.002 17.2)", accentForeground: "oklch(0.214 0.009 43.1)",
-      destructive: "oklch(0.577 0.245 27.325)",
-      border: "oklch(0.922 0.005 34.3)", input: "oklch(0.922 0.005 34.3)", ring: "oklch(0.714 0.014 41.2)",
-    },
-    dark: {
-      background: "oklch(0.147 0.004 49.3)", foreground: "oklch(0.986 0.002 67.8)",
-      card: "oklch(0.214 0.009 43.1)", cardForeground: "oklch(0.986 0.002 67.8)",
-      primary: "oklch(0.922 0.005 34.3)", primaryForeground: "oklch(0.214 0.009 43.1)",
-      secondary: "oklch(0.268 0.011 36.5)", secondaryForeground: "oklch(0.986 0.002 67.8)",
-      muted: "oklch(0.268 0.011 36.5)", mutedForeground: "oklch(0.714 0.014 41.2)",
-      accent: "oklch(0.268 0.011 36.5)", accentForeground: "oklch(0.986 0.002 67.8)",
-      destructive: "oklch(0.704 0.191 22.216)",
-      border: "oklch(1 0 0 / 10%)", input: "oklch(1 0 0 / 15%)", ring: "oklch(0.547 0.021 43.1)",
-    },
-  },
+  }),
+  preset("ember", "Ember", "oklch(0.646 0.194 41.12)", {
+    mode: "light",
+    font: "serif",
+    radius: 0.25,
+  }),
+  preset("meadow", "Meadow", "oklch(0.627 0.17 149.21)", {
+    mode: "light",
+    font: "inter",
+    radius: 1,
+  }),
+  preset("azure", "Azure", "oklch(0.546 0.215 262.88)", {
+    mode: "dark",
+    font: "inter",
+    radius: 0.375,
+  }),
+  preset("plum", "Plum", "oklch(0.558 0.252 302.32)", {
+    mode: "dark",
+    font: "serif",
+    radius: 1.25,
+  }),
 ];
 
 export const VAR_KEY_MAP: Record<keyof ThemeVars, string> = {
@@ -260,6 +138,8 @@ export const VAR_KEY_MAP: Record<keyof ThemeVars, string> = {
   foreground: "--foreground",
   card: "--card",
   cardForeground: "--card-foreground",
+  popover: "--popover",
+  popoverForeground: "--popover-foreground",
   primary: "--primary",
   primaryForeground: "--primary-foreground",
   secondary: "--secondary",
@@ -269,7 +149,27 @@ export const VAR_KEY_MAP: Record<keyof ThemeVars, string> = {
   accent: "--accent",
   accentForeground: "--accent-foreground",
   destructive: "--destructive",
+  destructiveForeground: "--destructive-foreground",
+  warning: "--warning",
+  warningForeground: "--warning-foreground",
+  info: "--info",
+  infoForeground: "--info-foreground",
   border: "--border",
   input: "--input",
   ring: "--ring",
 };
+
+/** Color rows grouped the way the sidebar's accordion presents them. */
+export const COLOR_GROUPS: { label: string; keys: (keyof ThemeVars)[] }[] = [
+  { label: "Primary", keys: ["primary", "primaryForeground"] },
+  { label: "Secondary", keys: ["secondary", "secondaryForeground"] },
+  { label: "Accent", keys: ["accent", "accentForeground"] },
+  { label: "Base", keys: ["background", "foreground"] },
+  { label: "Card", keys: ["card", "cardForeground"] },
+  { label: "Popover", keys: ["popover", "popoverForeground"] },
+  { label: "Muted", keys: ["muted", "mutedForeground"] },
+  { label: "Destructive", keys: ["destructive", "destructiveForeground"] },
+  { label: "Warning", keys: ["warning", "warningForeground"] },
+  { label: "Info", keys: ["info", "infoForeground"] },
+  { label: "Border & Input", keys: ["border", "input", "ring"] },
+];

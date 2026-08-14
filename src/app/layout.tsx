@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeCustomizerProvider } from "@/components/theme/theme-provider";
+import {
+  DouglasTitleBar,
+  DouglasUtilityBar,
+  ThemeGeneratorSidebar,
+} from "@/components/theme/theme-generator-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
@@ -28,7 +33,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeCustomizerProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            {/* Chrome is shared: every screen below is themed live by the sidebar. */}
+            <div className="flex min-h-screen flex-col bg-background">
+              <DouglasTitleBar />
+              <DouglasUtilityBar />
+              <div className="flex flex-1 lg:flex-row">
+                <ThemeGeneratorSidebar className="hidden lg:sticky lg:top-[7.5rem] lg:flex lg:h-[calc(100vh-7.5rem)] lg:w-[280px] lg:shrink-0" />
+                <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+              </div>
+            </div>
+          </TooltipProvider>
         </ThemeCustomizerProvider>
       </body>
     </html>

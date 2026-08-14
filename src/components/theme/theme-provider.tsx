@@ -67,6 +67,8 @@ export function ThemeCustomizerProvider({ children }: { children: React.ReactNod
     setState((s) => ({
       ...s,
       presetId: id,
+      // A theme carries its whole look, light-or-dark included.
+      mode: preset.mode,
       radius: preset.radius,
       font: preset.font,
       primaryOverride: null,
