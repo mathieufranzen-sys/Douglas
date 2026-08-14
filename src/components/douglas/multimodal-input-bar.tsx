@@ -12,9 +12,9 @@ const multimodalInputBarVariants = cva("bg-card text-card-foreground transition-
   variants: {
     style: {
       // Input above, toolbar below.
-      default: "flex flex-col gap-2 rounded-2xl border p-3",
+      default: "flex flex-col gap-2 rounded-xl border p-3",
       // Single row, no toolbar.
-      compact: "flex items-center gap-1 rounded-full border py-1 pr-1 pl-3",
+      compact: "flex items-center gap-1 rounded-md border py-1 pr-1 pl-3",
       // Taller composer for long prompts.
       expanded: "flex flex-col gap-3 rounded-2xl border p-3",
     },
@@ -94,7 +94,7 @@ export function MultimodalInputBar({
     return (
       <div className={cn(multimodalInputBarVariants({ style, state: resolvedState }), className)}>
         {field}
-        <Button size="icon-sm" className="rounded-full" onClick={submit} disabled={!text.trim()}>
+        <Button size="icon-sm" className="rounded-md" onClick={submit} disabled={!text.trim()}>
           <ArrowRight strokeWidth={1.75} />
         </Button>
       </div>

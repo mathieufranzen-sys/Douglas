@@ -57,7 +57,7 @@ export function AgentQuestionCard({
     return (
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-card-foreground",
+          "flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-card-foreground",
           className
         )}
       >
@@ -69,7 +69,7 @@ export function AgentQuestionCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3.5 rounded-md border bg-card p-4 text-card-foreground shadow-sm",
+        "flex flex-col gap-3.5 rounded-xl border bg-card p-4 text-card-foreground shadow-sm",
         className
       )}
     >
