@@ -92,7 +92,9 @@ export default function PromptInputScreen() {
         title="Douglas"
         badge={
           <>
-            <span className="h-4 w-7 rounded-full bg-muted" aria-hidden />
+            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">
+              Pro
+            </span>
             <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
           </>
         }

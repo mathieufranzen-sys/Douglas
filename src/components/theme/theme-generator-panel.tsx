@@ -108,7 +108,9 @@ function useFullscreen() {
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
-      document.documentElement.requestFullscreen();
+      // Fullscreen the page content only — the title bar, utility bar and theme
+      // sidebar shouldn't be part of full page mode.
+      document.getElementById("page-content")?.requestFullscreen();
     }
   };
 

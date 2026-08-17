@@ -42,7 +42,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <DouglasUtilityBar className="shrink-0" />
               <div className="flex min-h-0 flex-1 lg:flex-row">
                 <ThemeGeneratorSidebar className="hidden lg:flex lg:h-full lg:w-[280px] lg:shrink-0" />
-                <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
+                {/* id targeted by the utility bar's fullscreen toggle, so full page mode
+                    shows only the screen's own content — not the title bar, utility bar
+                    or theme sidebar. */}
+                <main id="page-content" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background">
+                  {children}
+                </main>
               </div>
             </div>
           </TooltipProvider>

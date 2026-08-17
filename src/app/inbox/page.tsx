@@ -104,19 +104,12 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function FileChip({ label, tone = "muted" }: { label: string; tone?: "muted" | "primary" }) {
+// Both attached files render with the same tone — they're the same kind of object
+// regardless of what's inside them.
+function FileChip({ label }: { label: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs",
-        tone === "primary" ? "bg-primary/15 text-foreground" : "bg-muted text-foreground"
-      )}
-    >
-      {tone === "primary" ? (
-        <Palette className="size-3.5 shrink-0" strokeWidth={1.75} />
-      ) : (
-        <FileText className="size-3.5 shrink-0" strokeWidth={1.75} />
-      )}
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-foreground">
+      <FileText className="size-3.5 shrink-0" strokeWidth={1.75} />
       {label}
       <Download className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
     </span>
@@ -139,7 +132,14 @@ export default function InboxAgentScreen() {
     <div className="flex flex-1 border-b">
       <ScreenNav
         title="Douglas"
-        badge={<ChevronDown className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />}
+        badge={
+          <>
+            <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">
+              Pro
+            </span>
+            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+          </>
+        }
         footer={
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 rounded-lg bg-primary/15 p-3">
@@ -303,9 +303,11 @@ export default function InboxAgentScreen() {
                   <Mic strokeWidth={1.75} />
                 </Button>
                 <span
-                  className="size-5 shrink-0 rounded-full bg-gradient-to-br from-warning to-destructive"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary text-[0.625rem] font-semibold text-primary-foreground"
                   aria-hidden
-                />
+                >
+                  ⌘
+                </span>
               </div>
               <Button size="icon-lg" aria-label="Send reply" disabled={!reply.trim()}>
                 <ArrowRight strokeWidth={1.75} />
@@ -327,7 +329,7 @@ export default function InboxAgentScreen() {
         </SummaryRow>
         <SummaryRow label="Files">
           <FileChip label="CR meeting" />
-          <FileChip label="Brand kit" tone="primary" />
+          <FileChip label="Brand kit" />
         </SummaryRow>
         <SummaryRow label="Permission">
           <ParameterSelector label={permission.label} variant="outline">

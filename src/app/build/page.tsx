@@ -18,7 +18,6 @@ import { MessageActionRow } from "@/components/douglas/message-action-row";
 import { ArtifactCard } from "@/components/douglas/artifact-card";
 import { SourceChip } from "@/components/douglas/source-chip";
 import { ConfidenceBadge } from "@/components/douglas/confidence-badge";
-import { AgentStatusIndicator } from "@/components/douglas/agent-status-indicator";
 import { MultimodalInputBar } from "@/components/douglas/multimodal-input-bar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -168,8 +167,6 @@ export default function BuildConversationScreen() {
               <MessageActionRow timestamp="2 hours ago" />
               <ConfidenceBadge level="high" style="dot" />
             </div>
-
-            <AgentStatusIndicator status="thinking" label="Thinking…" type="text-image" />
 
             <div className="flex justify-center">
               <Button variant="outline" size="xs" className="rounded-full">
