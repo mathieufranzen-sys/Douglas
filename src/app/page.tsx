@@ -229,20 +229,18 @@ function Reveal({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Bento tiles carry a colour rather than all sitting on the same grey card: a wash of
- * one semantic token bleeding out of the top-left corner into --card. Keeps every
- * foreground on its normal token, so tinting costs nothing in legibility.
+ * Bento tiles are all one colour — the brand accent at three intensities — rather than
+ * a spread of semantic hues. Green, amber and red side by side read as status signals
+ * and made the hero look like a dashboard; a single hue keeps it a product shot, and it
+ * follows whatever primary the active theme sets. Foregrounds stay on their normal
+ * tokens, so tinting costs nothing in legibility.
  */
-type Tone = "plain" | "primary" | "info" | "success" | "warning" | "destructive";
+type Tone = "plain" | "soft" | "strong";
 
 const TONE: Record<Tone, string> = {
   plain: "border-border bg-card",
-  primary: "border-primary/40 bg-gradient-to-br from-primary/25 via-card to-card",
-  info: "border-info/40 bg-gradient-to-br from-info/25 via-card to-card",
-  success: "border-success/40 bg-gradient-to-br from-success/25 via-card to-card",
-  warning: "border-warning/40 bg-gradient-to-br from-warning/25 via-card to-card",
-  destructive:
-    "border-destructive/40 bg-gradient-to-br from-destructive/25 via-card to-card",
+  soft: "border-primary/25 bg-gradient-to-br from-primary/12 via-card to-card",
+  strong: "border-primary/40 bg-gradient-to-br from-primary/25 via-card to-card",
 };
 
 function Tile({
@@ -567,7 +565,7 @@ export default function ComponentsScreen() {
             beside the tall ones instead of leaving holes. */}
         <div className="relative mx-auto w-full max-w-6xl px-6 pb-14">
           <div className="grid grid-flow-row-dense grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            <Tile tone="success" className="col-span-2 row-span-2">
+            <Tile tone="strong" className="col-span-2 row-span-2">
               <ScopePermissionGroup className="w-full">
                 {SCOPES.map((scope) => (
                   <ScopePermissionCard
@@ -582,7 +580,7 @@ export default function ComponentsScreen() {
               </ScopePermissionGroup>
             </Tile>
 
-            <Tile tone="warning" className="col-span-2 row-span-2">
+            <Tile tone="strong" className="col-span-2 row-span-2">
               {resolved ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-sm font-semibold">Conflict resolved</span>
@@ -622,11 +620,11 @@ export default function ComponentsScreen() {
               </div>
             </Tile>
 
-            <Tile tone="primary" className="col-span-2 sm:col-span-2 lg:col-span-3">
+            <Tile tone="soft" className="col-span-2 sm:col-span-2 lg:col-span-3">
               <AutonomyLevelSelector className="w-full" />
             </Tile>
 
-            <Tile tone="info" className="col-span-2 sm:col-span-2 lg:col-span-3">
+            <Tile tone="soft" className="col-span-2 sm:col-span-2 lg:col-span-3">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <SourceChip label="Figma" icon={Frame} href="#" />
                 <SourceChip label="Employee CRM" icon={Contact} href="#" />
@@ -634,7 +632,7 @@ export default function ComponentsScreen() {
               </div>
             </Tile>
 
-            <Tile tone="primary" className="col-span-2">
+            <Tile tone="soft" className="col-span-2">
               <ArtifactCard
                 className="w-full border-0 bg-transparent shadow-none"
                 title="Finance Dashboard"
@@ -643,7 +641,7 @@ export default function ComponentsScreen() {
               />
             </Tile>
 
-            <Tile tone="warning" className="col-span-2">
+            <Tile tone="plain" className="col-span-2">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <ConfidenceBadge level="high" />
                 <ConfidenceBadge level="medium" />
@@ -651,7 +649,7 @@ export default function ComponentsScreen() {
               </div>
             </Tile>
 
-            <Tile tone="destructive" className="col-span-2">
+            <Tile tone="soft" className="col-span-2">
               <AgentErrorCard
                 className="w-full bg-transparent"
                 style="banner"
@@ -659,7 +657,7 @@ export default function ComponentsScreen() {
               />
             </Tile>
 
-            <Tile tone="info" className="col-span-2 lg:col-span-3">
+            <Tile tone="soft" className="col-span-2 lg:col-span-3">
               <ScheduledTaskCard
                 className="w-full bg-transparent"
                 style="compact"
@@ -836,14 +834,16 @@ export default function ComponentsScreen() {
         reverse
       >
         {/* Overlapped on purpose — the schedule is a second, different object that the
-            delegation produces, not another field on the same form. */}
-        <div className="relative w-full pb-6">
+            delegation produces, not another field on the same form. Kept to a hair of
+            overlap: any more and it starts hiding the schedule's own icon and title
+            rather than just implying the layering. */}
+        <div className="relative w-full">
           <DelegationCard
             className="relative z-10 w-full shadow-lg"
             onSubmit={(draft) => setDelegated(draft.task)}
           />
           <ScheduledTaskCard
-            className="relative z-0 -mt-4 ml-6 w-[calc(100%-3rem)] shadow-md"
+            className="relative z-0 -mt-1.5 ml-8 w-[calc(100%-2rem)] shadow-md"
             style="list"
             title={delegated ?? "Weekly competitor price check"}
             frequency={delegated ? "Delegated just now" : "Every Monday at 7:00 AM"}
