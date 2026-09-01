@@ -3,17 +3,29 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RotateCcw, ExternalLink, Maximize, Minimize } from "lucide-react";
+import { RotateCcw, ExternalLink, Maximize, Minimize, ClipboardPaste } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { toHex, hexToOklch } from "@/lib/color";
 import { COLOR_GROUPS, type ThemeVars } from "@/lib/themes";
+import { parseThemeCss, type ParsedThemeCss } from "@/lib/parse-theme-css";
 import { useThemeCustomizer } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Accordion,
   AccordionContent,
@@ -212,6 +224,102 @@ function ColorRow({
   );
 }
 
+/**
+ * Paste-a-theme, the way tweakcn imports one: the CSS text is parsed locally, nothing
+ * is fetched from a remote site. Whatever it recognises is layered over the active
+ * preset as overrides, so the pasted look lands on Douglas's own components at once.
+ */
+function ImportCssDialog() {
+  const { setOverrides, setRadius } = useThemeCustomizer();
+  const [open, setOpen] = React.useState(false);
+  const [css, setCss] = React.useState("");
+  const [result, setResult] = React.useState<ParsedThemeCss | null>(null);
+
+  const applied = result ? Object.keys(result.light).length + Object.keys(result.dark).length : 0;
+
+  const runImport = () => {
+    const parsed = parseThemeCss(css);
+    setResult(parsed);
+    if (!Object.keys(parsed.light).length && !Object.keys(parsed.dark).length) return;
+
+    setOverrides({ light: parsed.light, dark: parsed.dark });
+    if (parsed.radius !== null) setRadius(parsed.radius);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setResult(null);
+      }}
+    >
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="icon" aria-label="Import a theme from CSS" />
+        }
+      >
+        <ClipboardPaste strokeWidth={1.75} />
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Import a theme</DialogTitle>
+          <DialogDescription>
+            Paste the `:root` and `.dark` blocks from a tweakcn export, a shadcn registry
+            entry, or any shadcn site&apos;s stylesheet. Accepts oklch, hex, hsl and rgb.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Textarea
+          value={css}
+          onChange={(e) => setCss(e.target.value)}
+          placeholder={":root {\n  --background: #ffffff;\n  --primary: oklch(0.62 0.19 260);\n}"}
+          rows={12}
+          aria-label="Theme CSS"
+          className="max-h-[45vh] overflow-y-auto font-mono text-xs"
+        />
+
+        {result && (
+          <div className="flex flex-col gap-1 text-xs">
+            {applied > 0 ? (
+              <span className="text-foreground">
+                Applied {applied} token{applied === 1 ? "" : "s"}
+                {Object.keys(result.light).length > 0 && Object.keys(result.dark).length > 0
+                  ? " across light and dark"
+                  : Object.keys(result.dark).length > 0
+                    ? " to dark"
+                    : " to light"}
+                {result.radius !== null && `, radius ${result.radius}rem`}.
+              </span>
+            ) : (
+              <span className="text-destructive">
+                No Douglas tokens found in that paste — nothing was changed.
+              </span>
+            )}
+            {result.unreadable.length > 0 && (
+              <span className="text-muted-foreground">
+                Couldn&apos;t read a colour from {result.unreadable.join(", ")}.
+              </span>
+            )}
+            {result.ignored.length > 0 && (
+              <span className="text-muted-foreground">
+                Douglas has no token for {result.ignored.join(", ")}.
+              </span>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" size="sm" />}>Close</DialogClose>
+          <Button size="sm" onClick={runImport} disabled={!css.trim()}>
+            Import
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ThemeGeneratorSidebar({ className }: { className?: string }) {
   const {
     presets,
@@ -222,18 +330,16 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
     setRadius,
     font,
     setFont,
-    primaryOverride,
-    setPrimaryOverride,
+    overrides,
+    setVar,
   } = useThemeCustomizer();
 
   const activePreset = presets.find((p) => p.id === presetId) ?? presets[0];
   const vars = mode === "light" ? activePreset.light : activePreset.dark;
 
-  const valueFor = (key: keyof ThemeVars) => (key === "primary" ? primaryOverride ?? vars[key] : vars[key]);
-  const setValueFor = (key: keyof ThemeVars) => (value: string) => {
-    if (key === "primary") setPrimaryOverride(value);
-    // Other tokens aren't independently overridable — Primary is the one brand knob.
-  };
+  // Every token is editable, and an edit only touches the mode on screen.
+  const valueFor = (key: keyof ThemeVars) => overrides[mode][key] ?? vars[key];
+  const setValueFor = (key: keyof ThemeVars) => (value: string) => setVar(key, value);
 
   return (
     <aside
@@ -243,18 +349,21 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
       {/* The preset picker stays at the same level as the color/typography/radius
           choices below it — same panel, same column — instead of living in the
           utility bar with unrelated controls. */}
-      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
-        <SelectTrigger className="h-9 w-full shrink-0 text-sm" aria-label="Theme">
-          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {presets.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
+          <SelectTrigger className="h-9 min-w-0 flex-1 text-sm" aria-label="Theme">
+            <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {presets.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <ImportCssDialog />
+      </div>
 
       {/* Only this column scrolls — the preset picker above and the tab list below
           stay put. */}

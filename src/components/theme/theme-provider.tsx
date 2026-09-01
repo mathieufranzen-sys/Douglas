@@ -1,16 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { THEME_PRESETS, FONT_STACKS, VAR_KEY_MAP, type ThemePreset } from "@/lib/themes";
+import {
+  THEME_PRESETS,
+  FONT_STACKS,
+  VAR_KEY_MAP,
+  type ThemePreset,
+  type ThemeVars,
+} from "@/lib/themes";
 
 type Mode = "light" | "dark";
+
+/** Tokens edited on top of the active preset. Kept per mode, the way a theme file is. */
+export type VarOverrides = Partial<Record<keyof ThemeVars, string>>;
 
 type ThemeState = {
   presetId: string;
   mode: Mode;
   radius: number;
   font: string;
-  primaryOverride: string | null;
+  overrides: Record<Mode, VarOverrides>;
 };
 
 type ThemeContextValue = ThemeState & {
@@ -20,10 +29,16 @@ type ThemeContextValue = ThemeState & {
   toggleMode: () => void;
   setRadius: (radius: number) => void;
   setFont: (font: string) => void;
-  setPrimaryOverride: (color: string | null) => void;
+  /** Overrides one token in the mode currently on screen. */
+  setVar: (key: keyof ThemeVars, value: string) => void;
+  /** Replaces the override layer wholesale — what a pasted CSS theme goes through. */
+  setOverrides: (overrides: Partial<Record<Mode, VarOverrides>>) => void;
+  resetOverrides: () => void;
 };
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
+
+const EMPTY_OVERRIDES: Record<Mode, VarOverrides> = { light: {}, dark: {} };
 
 function applyTheme(state: ThemeState) {
   if (typeof document === "undefined") return;
@@ -35,10 +50,12 @@ function applyTheme(state: ThemeState) {
     root.style.setProperty(VAR_KEY_MAP[key], vars[key]);
   });
 
-  if (state.primaryOverride) {
-    root.style.setProperty("--primary", state.primaryOverride);
-    root.style.setProperty("--ring", state.primaryOverride);
-  }
+  // Edited tokens win over the preset's own, for the mode being shown.
+  const overrides = state.overrides[state.mode];
+  (Object.keys(overrides) as (keyof ThemeVars)[]).forEach((key) => {
+    const value = overrides[key];
+    if (value) root.style.setProperty(VAR_KEY_MAP[key], value);
+  });
 
   root.style.setProperty("--radius", `${state.radius}rem`);
   root.style.setProperty("--font-sans", FONT_STACKS[state.font] ?? FONT_STACKS.geist);
@@ -53,7 +70,7 @@ export function ThemeCustomizerProvider({ children }: { children: React.ReactNod
     mode: "dark",
     radius: THEME_PRESETS[0].radius,
     font: THEME_PRESETS[0].font,
-    primaryOverride: null,
+    overrides: EMPTY_OVERRIDES,
   });
 
   React.useEffect(() => {
@@ -71,7 +88,7 @@ export function ThemeCustomizerProvider({ children }: { children: React.ReactNod
       mode: preset.mode,
       radius: preset.radius,
       font: preset.font,
-      primaryOverride: null,
+      overrides: EMPTY_OVERRIDES,
     }));
   }, []);
 
@@ -83,7 +100,20 @@ export function ThemeCustomizerProvider({ children }: { children: React.ReactNod
     toggleMode: () => setState((s) => ({ ...s, mode: s.mode === "light" ? "dark" : "light" })),
     setRadius: (radius) => setState((s) => ({ ...s, radius })),
     setFont: (font) => setState((s) => ({ ...s, font })),
-    setPrimaryOverride: (color) => setState((s) => ({ ...s, primaryOverride: color })),
+    setVar: (key, value) =>
+      setState((s) => ({
+        ...s,
+        overrides: { ...s.overrides, [s.mode]: { ...s.overrides[s.mode], [key]: value } },
+      })),
+    setOverrides: (next) =>
+      setState((s) => ({
+        ...s,
+        overrides: {
+          light: next.light ?? s.overrides.light,
+          dark: next.dark ?? s.overrides.dark,
+        },
+      })),
+    resetOverrides: () => setState((s) => ({ ...s, overrides: EMPTY_OVERRIDES })),
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
