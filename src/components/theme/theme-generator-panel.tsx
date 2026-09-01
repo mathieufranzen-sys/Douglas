@@ -60,12 +60,10 @@ const FIGMA_URL =
   "https://www.figma.com/design/y2p1cRz0jVS0gHCI5dPavR/Untitled?node-id=291-127590";
 const PORTFOLIO_URL = "#";
 
-const SCREENS = [
-  { href: "/", label: "Components" },
-  { href: "/prompt", label: "Prompt Input" },
-  { href: "/inbox", label: "Inbox Agent" },
-  { href: "/build", label: "Build Conversation" },
-];
+// The three product screens no longer live in the utility bar — they're reachable as
+// "See it assembled" cards at the foot of the components page instead, so the bar
+// only ever names the page you're already on.
+const SCREENS = [{ href: "/", label: "Components" }];
 
 const FONT_OPTIONS = [
   { id: "geist", label: "Geist" },

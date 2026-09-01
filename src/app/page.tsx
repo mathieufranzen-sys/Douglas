@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Calendar,
   MessageSquare,
@@ -13,6 +14,10 @@ import {
   ListChecks,
   Send,
   Database,
+  Sparkles,
+  Inbox,
+  Blocks,
+  ArrowUpRight,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -46,7 +51,6 @@ import { SourceChip } from "@/components/douglas/source-chip";
 import { MessageBubble } from "@/components/douglas/message-bubble";
 import { MessageActionRow } from "@/components/douglas/message-action-row";
 import { ConfidenceBadge } from "@/components/douglas/confidence-badge";
-import { Button } from "@/components/ui/button";
 import type { VoiceState } from "@/components/douglas/voice-status-pill";
 
 const UNDO_WINDOW_SECONDS = 5;
@@ -90,6 +94,27 @@ const ACTIVITY: { actor: "agent" | "user"; action: string; timestamp: string; is
 
 const STATUSES = ["idle", "thinking", "acting", "waiting", "blocked"] as const;
 
+const EXAMPLES = [
+  {
+    href: "/prompt",
+    icon: Sparkles,
+    title: "Prompt Input",
+    description: "Starting a task — the composer, voice input, model picker.",
+  },
+  {
+    href: "/inbox",
+    icon: Inbox,
+    title: "Inbox Agent",
+    description: "Triage, approval, and a live summary panel.",
+  },
+  {
+    href: "/build",
+    icon: Blocks,
+    title: "Build Conversation",
+    description: "A working session with an artifact preview.",
+  },
+] as const;
+
 /** Countdown that stops at zero and can be rearmed. */
 function useCountdown(initial: number) {
   const [seconds, setSeconds] = React.useState(initial);
@@ -115,7 +140,9 @@ function useCountdown(initial: number) {
 /**
  * A numbered chapter of the agent lifecycle. The showcase is ordered by the moment a
  * component is reached for — before acting, during, after — rather than by component
- * name, so the set reads as one argument instead of a parts bin.
+ * name, so the set reads as one argument instead of a parts bin. The intent line is the
+ * only prose on the page: individual tiles carry no caption, because a component that
+ * needs a sentence to be understood has failed at being a component.
  */
 function Section({
   index,
@@ -143,28 +170,56 @@ function Section({
 }
 
 /**
- * The recessed plate a component is pinned to. This is what the --sidebar family is for:
+ * A real bento: a 6-column grid with dense auto-placement and a small shared row unit,
+ * so tiles of uneven natural height still pack against each other instead of each
+ * claiming a uniform cell and leaving blank space under whichever is shortest. `span`
+ * is a hand-picked estimate of how much of that grid a tile's actual content fills —
+ * there is no live masonry measuring it, so a size that is a little generous is the
+ * safe direction; a little short just lets the row grow rather than clipping anything.
+ */
+function Bento({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-flow-row-dense grid-cols-2 gap-4 auto-rows-[minmax(3.25rem,auto)] sm:grid-cols-4 lg:grid-cols-6">
+      {children}
+    </div>
+  );
+}
+
+type Span = "xs" | "sm" | "md" | "md-tall" | "lg" | "lg-tall" | "wide";
+
+const SPAN_CLASS: Record<Span, string> = {
+  xs: "col-span-2 row-span-1",
+  sm: "col-span-2 row-span-2",
+  md: "col-span-2 row-span-1 sm:col-span-2 lg:col-span-3",
+  "md-tall": "col-span-2 row-span-2 sm:col-span-2 lg:col-span-3",
+  lg: "col-span-2 row-span-1 sm:col-span-4 lg:col-span-4",
+  "lg-tall": "col-span-2 row-span-2 sm:col-span-4 lg:col-span-4",
+  wide: "col-span-2 row-span-1 sm:col-span-4 lg:col-span-6",
+};
+
+/**
+ * The plate a component is pinned to. This is what the --sidebar family is for:
  * background → sidebar → card gives three real surfaces, so a card reads as raised
  * instead of dissolving into the page.
  */
 function Specimen({
   children,
+  span = "md",
   className,
-  note,
 }: {
   children: React.ReactNode;
+  span?: Span;
   className?: string;
-  note?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-xl border border-dashed bg-sidebar p-5",
+        "flex min-w-0 flex-col items-start justify-center gap-3 rounded-xl border border-dashed bg-sidebar p-5",
+        SPAN_CLASS[span],
         className
       )}
     >
-      <div className="flex min-w-0 flex-col items-start gap-3">{children}</div>
-      {note && <span className="mt-auto text-[0.6875rem] text-muted-foreground">{note}</span>}
+      {children}
     </div>
   );
 }
@@ -217,6 +272,40 @@ function ChatPreview({
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-sidebar via-sidebar/85 to-transparent"
       />
     </div>
+  );
+}
+
+/** A card that leaves the showcase for the full, assembled screen it belongs to. */
+function ExampleCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex flex-col justify-between gap-8 rounded-xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/40"
+    >
+      <div className="flex items-center justify-between">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="size-4" strokeWidth={1.75} />
+        </span>
+        <ArrowUpRight
+          className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+          strokeWidth={1.75}
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-xs text-muted-foreground">{description}</span>
+      </div>
+    </Link>
   );
 }
 
@@ -325,8 +414,8 @@ export default function ComponentsScreen() {
           title="Asking before acting"
           intent="The agent states what it is about to do and stops. Nothing here runs on its own."
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Specimen className="lg:col-span-2" note="Confirm to watch it resolve">
+          <Bento>
+            <Specimen span="lg-tall">
               <ApprovalModal
                 className="w-full"
                 title="Confirm irreversible action"
@@ -345,7 +434,7 @@ export default function ComponentsScreen() {
               </ApprovalModal>
             </Specimen>
 
-            <Specimen note="Answer to advance the sequence">
+            <Specimen span="md-tall">
               {allAnswered ? (
                 <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
                   <span className="text-sm font-semibold">All set</span>
@@ -376,7 +465,7 @@ export default function ComponentsScreen() {
               )}
             </Specimen>
 
-            <Specimen note="The glyph lights up with the switch">
+            <Specimen span="sm">
               <ScopePermissionGroup className="w-full">
                 {SCOPES.map((scope) => (
                   <ScopePermissionCard
@@ -391,11 +480,11 @@ export default function ComponentsScreen() {
               </ScopePermissionGroup>
             </Specimen>
 
-            <Specimen>
+            <Specimen span="xs">
               <AutonomyLevelSelector className="w-full" />
             </Specimen>
 
-            <Specimen note="Warning-toned: nothing failed yet">
+            <Specimen span="md">
               {resolved ? (
                 <div className="flex w-full flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm">
                   <span className="text-sm font-semibold">Conflict resolved</span>
@@ -420,7 +509,7 @@ export default function ComponentsScreen() {
                 />
               )}
             </Specimen>
-          </div>
+          </Bento>
         </Section>
 
         <Section
@@ -428,8 +517,8 @@ export default function ComponentsScreen() {
           title="Showing the work"
           intent="While the agent runs, its state and its reasoning stay legible. Each status carries its own colour."
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Specimen className="lg:col-span-3" note="Five states, five colours">
+          <Bento>
+            <Specimen span="wide">
               <div className="flex flex-wrap items-center gap-2">
                 {STATUSES.map((status) => (
                   <AgentStatusIndicator key={status} status={status} variant="outline" />
@@ -437,7 +526,7 @@ export default function ComponentsScreen() {
               </div>
             </Specimen>
 
-            <Specimen className="lg:col-span-2" note="Done reads resolved, running reads informational">
+            <Specimen span="lg-tall">
               <div className="flex w-full flex-col">
                 <ReasoningTimeline
                   title="Use Application"
@@ -463,8 +552,11 @@ export default function ComponentsScreen() {
               </div>
             </Specimen>
 
-            <Specimen note="Collapsed trace, plus a single tool call">
+            <Specimen span="xs">
               <ReasoningTimelineSummary label="Thinking process for 21s" />
+            </Specimen>
+
+            <Specimen span="xs">
               <ReasoningTimeline
                 title="vizualize"
                 icon={Wrench}
@@ -474,7 +566,7 @@ export default function ComponentsScreen() {
               />
             </Specimen>
 
-            <Specimen className="lg:col-span-2" note="Download to restart the run">
+            <Specimen span="md">
               <ArtifactCard
                 className="w-full"
                 title="AI history.svg"
@@ -486,16 +578,14 @@ export default function ComponentsScreen() {
               />
             </Specimen>
 
-            <Specimen note="Compact, for inside a thread">
-              <ArtifactCard
-                className="w-full"
-                title="Finance Dashboard"
-                meta="18.2 MB"
-                style="compact"
-              />
+            <Specimen span="xs">
+              <ArtifactCard className="w-full" title="Finance Dashboard" meta="18.2 MB" style="compact" />
+            </Specimen>
+
+            <Specimen span="xs">
               <ArtifactCard title="brief.pdf" style="inline" />
             </Specimen>
-          </div>
+          </Bento>
         </Section>
 
         <Section
@@ -503,8 +593,8 @@ export default function ComponentsScreen() {
           title="Staying reversible"
           intent="After the fact: what happened, how sure the agent was, and the window to take it back."
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Specimen note="Counts down, then closes">
+          <Bento>
+            <Specimen span="sm">
               {undone ? (
                 <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                   Reverted. The meeting is back at 11 AM.
@@ -529,10 +619,13 @@ export default function ComponentsScreen() {
                   Window closed — replay the countdown
                 </button>
               )}
+            </Specimen>
+
+            <Specimen span="md">
               <UndoRevokeBar seconds={124} style="banner" message="Meeting moved to 11:10 AM" />
             </Specimen>
 
-            <Specimen className="lg:col-span-2" note="Approve to swap the row for a revoke">
+            <Specimen span="lg-tall">
               <AgentActionCard
                 className="w-full"
                 title="Send the onboarding recap"
@@ -553,7 +646,7 @@ export default function ComponentsScreen() {
               />
             </Specimen>
 
-            <Specimen className="lg:col-span-2" note="Tinted by actor; errors outrank both">
+            <Specimen span="md-tall">
               <div className="flex w-full flex-col">
                 {ACTIVITY.map((entry) => (
                   <ActivityLogRow
@@ -567,7 +660,7 @@ export default function ComponentsScreen() {
               </div>
             </Specimen>
 
-            <Specimen note="Three levels, three colours">
+            <Specimen span="xs">
               <div className="flex flex-wrap items-center gap-2">
                 <ConfidenceBadge level="high" />
                 <ConfidenceBadge level="medium" />
@@ -577,14 +670,20 @@ export default function ComponentsScreen() {
                 <ConfidenceBadge level="high" style="dot" />
                 <ConfidenceBadge level="medium" style="percentage" />
               </div>
+            </Specimen>
+
+            <Specimen span="xs">
               <MessageActionRow timestamp="2 hours ago" />
+            </Specimen>
+
+            <Specimen span="xs">
               <div className="flex flex-wrap gap-2">
                 <SourceChip label="Figma" icon={Frame} href="#" />
                 <SourceChip label="Employee CRM" icon={Contact} href="#" />
                 <SourceChip label="Wrote /Transaction" icon={Database} />
               </div>
             </Specimen>
-          </div>
+          </Bento>
         </Section>
 
         <Section
@@ -592,8 +691,8 @@ export default function ComponentsScreen() {
           title="Handing over the recurring work"
           intent="A task the agent keeps doing after you have stopped watching, and the scopes it needs to keep."
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Specimen className="lg:col-span-2" note="Delegate to see it queued below">
+          <Bento>
+            <Specimen span="lg-tall">
               <DelegationCard className="w-full" onSubmit={(draft) => setDelegated(draft.task)} />
               {delegated && (
                 <ScheduledTaskCard
@@ -605,7 +704,7 @@ export default function ComponentsScreen() {
               )}
             </Specimen>
 
-            <Specimen note="Toggle to arm the schedule">
+            <Specimen span="md">
               <ScheduledTaskCard
                 className="w-full"
                 title="Weekly competitor price check"
@@ -616,7 +715,16 @@ export default function ComponentsScreen() {
                 onEnabledChange={setTaskEnabled}
               />
             </Specimen>
-          </div>
+
+            <Specimen span="xs">
+              <ScheduledTaskCard
+                className="w-full"
+                style="compact"
+                title="Nightly backup sync"
+                frequency="2:00 AM"
+              />
+            </Specimen>
+          </Bento>
         </Section>
 
         <Section
@@ -624,8 +732,8 @@ export default function ComponentsScreen() {
           title="When it breaks"
           intent="Failure is a state the interface has to hold, not an exception it drops on the floor."
         >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Specimen className="lg:col-span-2" note="Retry to clear it">
+          <Bento>
+            <Specimen span="md">
               {errorCleared ? (
                 <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                   Meeting moved on the second attempt.
@@ -639,6 +747,9 @@ export default function ComponentsScreen() {
                   onRetry={() => setRetrying(true)}
                 />
               )}
+            </Specimen>
+
+            <Specimen span="md-tall">
               <AgentErrorCard
                 className="w-full"
                 title="The calendar refused the write"
@@ -646,7 +757,7 @@ export default function ComponentsScreen() {
               />
             </Specimen>
 
-            <Specimen note="Chip-sized, for inside a thread">
+            <Specimen span="xs">
               {chipRetried ? (
                 <AgentStatusIndicator status="acting" label="Retrying the card export…" />
               ) : (
@@ -656,7 +767,7 @@ export default function ComponentsScreen() {
                 />
               )}
             </Specimen>
-          </div>
+          </Bento>
         </Section>
 
         <Section
@@ -794,6 +905,22 @@ export default function ComponentsScreen() {
             </div>
           </div>
         </Section>
+
+        {/* Closing, not a numbered chapter: these hand off to the three full product
+            screens the utility bar used to link to directly. */}
+        <div className="flex flex-col gap-5 border-t pt-10">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">See it assembled</h2>
+            <p className="max-w-2xl text-xs text-muted-foreground">
+              The same parts, built into three full screens.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {EXAMPLES.map((example) => (
+              <ExampleCard key={example.href} {...example} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
