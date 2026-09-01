@@ -5,13 +5,25 @@
  */
 
 type Rgb = { r: number; g: number; b: number };
+type Rgba = Rgb & { a: number };
 
-function parseOklch(value: string): { l: number; c: number; h: number } | null {
-  const match = value.trim().match(/^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)/i);
+/** `0.5`, `50%` → 0.5. Missing alpha reads as fully opaque. */
+function parseAlpha(raw: string | undefined): number {
+  if (raw === undefined) return 1;
+  const amount = raw.endsWith("%") ? parseFloat(raw) / 100 : parseFloat(raw);
+  return Number.isNaN(amount) ? 1 : Math.min(1, Math.max(0, amount));
+}
+
+function parseOklch(
+  value: string
+): { l: number; c: number; h: number; a: number } | null {
+  const match = value
+    .trim()
+    .match(/^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+%?))?/i);
   if (!match) return null;
   const rawL = match[1];
   const l = rawL.endsWith("%") ? parseFloat(rawL) / 100 : parseFloat(rawL);
-  return { l, c: parseFloat(match[2]), h: parseFloat(match[3]) };
+  return { l, c: parseFloat(match[2]), h: parseFloat(match[3]), a: parseAlpha(match[4]) };
 }
 
 function gammaEncode(channel: number): number {
@@ -91,6 +103,72 @@ export function hexToOklch(hex: string): string {
   const rgb = parseHex(hex);
   if (!rgb) return "oklch(0 0 0)";
   return rgbToOklch(rgb);
+}
+
+/** Any supported notation to gamma-encoded sRGB plus alpha. */
+function toRgba(value: string): Rgba | null {
+  const trimmed = value.trim();
+
+  const oklch = parseOklch(trimmed);
+  if (oklch) return { ...oklchToRgb(oklch), a: oklch.a };
+
+  const named = NAMED[trimmed.toLowerCase()];
+  const hex = parseHexWithAlpha(named ?? trimmed);
+  if (hex) return hex;
+
+  // hsl()/rgb() go through the same normaliser the importer uses.
+  const normalised = toOklch(trimmed);
+  if (normalised && normalised !== trimmed) {
+    const reparsed = parseOklch(normalised);
+    if (reparsed) return { ...oklchToRgb(reparsed), a: reparsed.a };
+  }
+  return null;
+}
+
+/** Flattens a translucent colour onto an opaque one. */
+function composite(top: Rgba, bottom: Rgb): Rgb {
+  return {
+    r: top.r * top.a + bottom.r * (1 - top.a),
+    g: top.g * top.a + bottom.g * (1 - top.a),
+    b: top.b * top.a + bottom.b * (1 - top.a),
+  };
+}
+
+/** WCAG 2.x relative luminance, from gamma-encoded sRGB. */
+function luminance({ r, g, b }: Rgb): number {
+  const [lr, lg, lb] = [r, g, b].map(gammaDecode);
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+}
+
+/**
+ * WCAG 2.x contrast ratio, 1–21. Translucent tokens (the neutral presets ship
+ * `--border: oklch(1 0 0 / 10%)`) are flattened onto their background first, since a
+ * ratio against a colour that is partly the layer underneath is meaningless.
+ * Returns null when either value isn't a colour we can read.
+ */
+export function contrastRatio(foreground: string, background: string): number | null {
+  const fg = toRgba(foreground);
+  const bg = toRgba(background);
+  if (!fg || !bg) return null;
+
+  // A translucent background has nothing declared underneath it here; white is the
+  // conventional assumption and keeps the number reproducible.
+  const bgSolid = bg.a < 1 ? composite(bg, { r: 1, g: 1, b: 1 }) : bg;
+  const fgSolid = fg.a < 1 ? composite(fg, bgSolid) : fg;
+
+  const [lighter, darker] = [luminance(fgSolid), luminance(bgSolid)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function parseHexWithAlpha(hex: string): Rgba | null {
+  const normalized = hex.trim().replace("#", "");
+  if (/^[0-9a-f]{8}$/i.test(normalized)) {
+    const rgb = parseHex(`#${normalized.slice(0, 6)}`);
+    if (!rgb) return null;
+    return { ...rgb, a: parseInt(normalized.slice(6, 8), 16) / 255 };
+  }
+  const rgb = parseHex(hex);
+  return rgb ? { ...rgb, a: 1 } : null;
 }
 
 function parseHex(hex: string): Rgb | null {

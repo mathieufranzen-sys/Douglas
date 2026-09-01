@@ -3,12 +3,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RotateCcw, ExternalLink, Maximize, Minimize, ClipboardPaste } from "lucide-react";
+import {
+  RotateCcw,
+  ExternalLink,
+  Maximize,
+  Minimize,
+  ClipboardPaste,
+  Contrast,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { toHex, hexToOklch } from "@/lib/color";
 import { COLOR_GROUPS, type ThemeVars } from "@/lib/themes";
 import { parseThemeCss, type ParsedThemeCss } from "@/lib/parse-theme-css";
+import { auditTheme, formatRatio, summarise, threshold, type Grade } from "@/lib/contrast";
 import { useThemeCustomizer } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -175,12 +183,27 @@ export function DouglasUtilityBar({ className }: { className?: string }) {
         {isFullscreen ? <Minimize strokeWidth={1.75} /> : <Maximize strokeWidth={1.75} />}
       </Button>
 
+      <ImportCssDialog />
+      <AccessibilityDialog />
+
       <Button variant="outline" size="sm" onClick={() => setPresetId(presetId)}>
         <RotateCcw data-icon="inline-start" strokeWidth={1.75} />
         Reset
       </Button>
     </div>
   );
+}
+
+/**
+ * The value each token actually resolves to right now: the active preset's, unless the
+ * panel has an override for the mode on screen. Shared by the editor and the audit so
+ * they can never disagree about what is applied.
+ */
+function useResolvedVars() {
+  const { presets, presetId, mode, overrides } = useThemeCustomizer();
+  const preset = presets.find((p) => p.id === presetId) ?? presets[0];
+  const vars = mode === "light" ? preset.light : preset.dark;
+  return (key: keyof ThemeVars) => overrides[mode][key] ?? vars[key];
 }
 
 /** A single token row: swatch, editable oklch, hex readout. */
@@ -254,12 +277,9 @@ function ImportCssDialog() {
         if (!next) setResult(null);
       }}
     >
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="icon" aria-label="Import a theme from CSS" />
-        }
-      >
-        <ClipboardPaste strokeWidth={1.75} />
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <ClipboardPaste data-icon="inline-start" strokeWidth={1.75} />
+        Import CSS
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -320,25 +340,103 @@ function ImportCssDialog() {
   );
 }
 
+const GRADE_STYLES: Record<Grade, string> = {
+  AAA: "bg-primary/15 text-primary",
+  AA: "bg-muted text-foreground",
+  Pass: "bg-muted text-foreground",
+  Fail: "bg-destructive/15 text-destructive",
+};
+
+/** Audits the live theme against WCAG 1.4.3 and 1.4.11, recomputing as tokens change. */
+function AccessibilityDialog() {
+  const { mode } = useThemeCustomizer();
+  const valueFor = useResolvedVars();
+
+  const results = auditTheme(valueFor);
+  const { total, failing, aaa, textTotal } = summarise(results);
+
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <Contrast data-icon="inline-start" strokeWidth={1.75} />
+        Accessibility
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Accessibility check</DialogTitle>
+          <DialogDescription>
+            Contrast of the live {mode} theme. Text pairs are graded against WCAG 1.4.3
+            (4.5:1 AA, 7:1 AAA); borders and the focus ring against 1.4.11 (3:1, which
+            defines no AAA level). Radius and typeface don&apos;t affect either.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span
+            className={cn(
+              "rounded-md px-2 py-1 font-medium",
+              failing === 0 ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"
+            )}
+          >
+            {failing === 0 ? `All ${total} pairs pass` : `${failing} of ${total} failing`}
+          </span>
+          <span className="text-muted-foreground">
+            {aaa} of {textTotal} text pairs reach AAA
+          </span>
+        </div>
+
+        <div className="-mx-1 max-h-[50vh] overflow-y-auto px-1">
+          <div className="flex flex-col">
+            {results.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center gap-3 border-b py-2 last:border-b-0"
+              >
+                <span
+                  aria-hidden
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border text-[0.625rem] font-semibold"
+                  style={{
+                    background: valueFor(row.background),
+                    color: valueFor(row.foreground),
+                  }}
+                >
+                  Aa
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium">{row.label}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {row.where} · {threshold(row.kind)}
+                  </span>
+                </div>
+                <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                  {row.ratio === null ? "—" : formatRatio(row.ratio)}
+                </span>
+                <span
+                  className={cn(
+                    "w-12 shrink-0 rounded-md px-1.5 py-0.5 text-center text-[0.625rem] font-semibold",
+                    row.grade ? GRADE_STYLES[row.grade] : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {row.grade ?? "n/a"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" size="sm" />}>Close</DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ThemeGeneratorSidebar({ className }: { className?: string }) {
-  const {
-    presets,
-    presetId,
-    setPresetId,
-    mode,
-    radius,
-    setRadius,
-    font,
-    setFont,
-    overrides,
-    setVar,
-  } = useThemeCustomizer();
+  const { presetId, setPresetId, presets, radius, setRadius, font, setFont, setVar } =
+    useThemeCustomizer();
+  const valueFor = useResolvedVars();
 
-  const activePreset = presets.find((p) => p.id === presetId) ?? presets[0];
-  const vars = mode === "light" ? activePreset.light : activePreset.dark;
-
-  // Every token is editable, and an edit only touches the mode on screen.
-  const valueFor = (key: keyof ThemeVars) => overrides[mode][key] ?? vars[key];
   const setValueFor = (key: keyof ThemeVars) => (value: string) => setVar(key, value);
 
   return (
@@ -349,21 +447,18 @@ export function ThemeGeneratorSidebar({ className }: { className?: string }) {
       {/* The preset picker stays at the same level as the color/typography/radius
           choices below it — same panel, same column — instead of living in the
           utility bar with unrelated controls. */}
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
-          <SelectTrigger className="h-9 min-w-0 flex-1 text-sm" aria-label="Theme">
-            <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {presets.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <ImportCssDialog />
-      </div>
+      <Select value={presetId} onValueChange={(v) => v && setPresetId(v as string)}>
+        <SelectTrigger className="h-9 w-full shrink-0 text-sm" aria-label="Theme">
+          <SelectValue>{(value: string | null) => presets.find((p) => p.id === value)?.label ?? value}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {presets.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Only this column scrolls — the preset picker above and the tab list below
           stay put. */}
