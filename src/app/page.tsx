@@ -255,15 +255,18 @@ function Feature({
 }) {
   return (
     <Reveal>
+      {/* min-w-0 on both columns: a grid item's min-width defaults to its min-content,
+          and the cards on the Stage have a wide one, which grew the track past the
+          viewport and gave the whole page a horizontal scrollbar on a phone. */}
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:gap-20 lg:py-24">
-        <div className={cn("flex flex-col items-start gap-4", reverse && "lg:order-2")}>
+        <div className={cn("flex min-w-0 flex-col items-start gap-4", reverse && "lg:order-2")}>
           <Eyebrow>{eyebrow}</Eyebrow>
           <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
             {title}
           </h2>
           <p className="max-w-md text-base leading-relaxed text-muted-foreground">{body}</p>
         </div>
-        <Stage align={align} className={cn(reverse && "lg:order-1")}>
+        <Stage align={align} className={cn("min-w-0", reverse && "lg:order-1")}>
           {children}
         </Stage>
       </section>
@@ -295,21 +298,43 @@ function Metric({ value, label }: { value: string; label: string }) {
 }
 
 /**
- * A conversation surface. Sits on --sidebar rather than --card so the threads read as
- * a distinct surface, and opens already scrolled a little with the top edge faded, so
- * it is legible that earlier turns exist above the fold.
+ * A short line of annotation set against the conversation window, the way Intercom
+ * labels the capabilities of its agent around a single chat panel. Not a caption under
+ * a component — it names what the thread beside it is demonstrating.
  */
-function ChatPreview({
+function Callout({
   children,
   className,
 }: {
   children: React.ReactNode;
   className?: string;
 }) {
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      <span aria-hidden className="h-px w-10 bg-primary/50" />
+      <span className="max-w-52 text-sm leading-snug font-medium">{children}</span>
+    </div>
+  );
+}
+
+/**
+ * One conversation, presented as the product surface it is: window chrome with the
+ * agent's live status, the thread, and the composer fixed at the foot. Replaces the two
+ * side-by-side thread specimens that used to sit here — two parallel half-conversations
+ * read as samples, where one complete exchange reads as the product.
+ *
+ * The thread opens pinned to its latest turn, the way a live one would, which is what
+ * puts earlier messages behind the faded top edge.
+ */
+function ConversationWindow({
+  children,
+  footer,
+}: {
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
   const scroller = React.useRef<HTMLDivElement>(null);
 
-  // Open pinned to the latest turn, the way a live thread would, which is what puts
-  // earlier messages behind the faded top edge.
   React.useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
@@ -322,21 +347,42 @@ function ChatPreview({
   }, []);
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-2xl border bg-card shadow-sm",
-        className
-      )}
-    >
-      {/* Fixed height, not max-height: the thread has to genuinely overflow for the
-          faded top edge to be hiding something. */}
-      <div ref={scroller} className="flex h-[24rem] flex-col gap-4 overflow-y-auto p-5">
-        {children}
-      </div>
+    <div className="relative">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-card via-card/85 to-transparent"
+        className="pointer-events-none absolute -inset-5 rounded-[2.5rem] bg-primary/10 blur-3xl"
       />
+      <div className="relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
+        <div className="flex items-center gap-2.5 border-b bg-gradient-to-b from-sidebar to-card px-4 py-3">
+          <span
+            aria-hidden
+            className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.625rem] font-semibold text-primary-foreground"
+          >
+            ⌘
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-xs leading-tight font-semibold">Douglas</span>
+            <span className="truncate text-[0.6875rem] leading-tight text-muted-foreground">
+              Employee CRM
+            </span>
+          </div>
+          <AgentStatusIndicator status="acting" variant="outline" className="ml-auto" />
+        </div>
+
+        <div className="relative">
+          {/* Fixed height, not max-height: the thread has to genuinely overflow for the
+              faded top edge to be hiding something. */}
+          <div ref={scroller} className="flex h-[24rem] flex-col gap-4 overflow-y-auto p-5">
+            {children}
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-card via-card/85 to-transparent"
+          />
+        </div>
+
+        <div className="border-t bg-sidebar/60 p-3">{footer}</div>
+      </div>
     </div>
   );
 }
@@ -514,6 +560,111 @@ export default function ComponentsScreen() {
           <Metric value="AA" label="contrast audited" />
         </div>
       </section>
+
+      {/* ── The set, up front: breadth first, then the arguments ────────── */}
+      <Reveal>
+        <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">
+          <div className="flex max-w-2xl flex-col gap-4">
+            <Eyebrow>The set</Eyebrow>
+            <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+              Twenty parts, one grammar.
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              Permissions, autonomy, artifacts, confidence, provenance, audit. Every one of
+              them themeable from the panel on the left.
+            </p>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Tile className="sm:col-span-2 lg:col-span-1">
+              <ScopePermissionGroup className="w-full">
+                {SCOPES.map((scope) => (
+                  <ScopePermissionCard
+                    key={scope.id}
+                    style="grouped"
+                    icon={scope.icon}
+                    label={scope.label}
+                    checked={scopes[scope.id]}
+                    onCheckedChange={(next) => setScopes((s) => ({ ...s, [scope.id]: next }))}
+                  />
+                ))}
+              </ScopePermissionGroup>
+            </Tile>
+
+            <Tile>
+              <AutonomyLevelSelector className="w-full" />
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <ConfidenceBadge level="high" />
+                  <ConfidenceBadge level="medium" />
+                  <ConfidenceBadge level="low" />
+                </div>
+                <ConfidenceBadge level="medium" style="percentage" />
+              </div>
+            </Tile>
+
+            <Tile className="sm:col-span-2">
+              <div className="flex w-full flex-col">
+                {ACTIVITY.map((entry) => (
+                  <ActivityLogRow
+                    key={entry.action}
+                    actor={entry.actor}
+                    action={entry.action}
+                    timestamp={entry.timestamp}
+                    isError={entry.isError}
+                  />
+                ))}
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-3">
+                <ArtifactCard title="brief.pdf" style="inline" />
+                <ArtifactCard
+                  className="w-full"
+                  title="Finance Dashboard"
+                  meta="18.2 MB"
+                  style="compact"
+                />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <SourceChip label="Figma" icon={Frame} href="#" />
+                <SourceChip label="Employee CRM" icon={Contact} href="#" />
+                <SourceChip label="Wrote /Transaction" icon={Database} />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-4">
+                <MessageActionRow timestamp="2 hours ago" />
+                <ReasoningTimelineSummary label="Thinking process for 21s" />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex w-full flex-col items-center gap-3">
+                <UndoRevokeBar
+                  seconds={124}
+                  style="banner"
+                  message="Meeting moved to 11:10 AM"
+                  className="w-full"
+                />
+                <AgentErrorCard
+                  className="w-full"
+                  style="banner"
+                  title="Coundn't move the meeting"
+                />
+              </div>
+            </Tile>
+          </div>
+        </section>
+      </Reveal>
 
       {/* ── Features: one argument, one visual, alternating ─────────────── */}
       <Feature
@@ -715,252 +866,152 @@ export default function ComponentsScreen() {
         </div>
       </Feature>
 
-      {/* ── Conversation: full-bleed band, the parts assembled ──────────── */}
+      {/* ── Conversation: one window, annotated the way Intercom presents Fin ── */}
       <Reveal>
         <section className="border-y bg-sidebar">
-          <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 lg:py-24">
+          <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16 lg:py-24">
             <div className="flex max-w-2xl flex-col gap-4">
               <Eyebrow>In conversation</Eyebrow>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
-                All of it, in one thread.
+                One thread, and nothing hidden in it.
               </h2>
               <p className="text-base leading-relaxed text-muted-foreground">
-                The reasoning trace, the sources, the artifact and the confidence signal are
-                not separate screens. They land inline, in the place the work is happening.
+                A single exchange, start to finish: the request, the trace of how it was
+                answered, what it touched, what it produced, and how sure it was.
               </p>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <ChatPreview>
-                <MessageBubble>Where did the new starter list end up?</MessageBubble>
-                <p className="text-sm leading-relaxed">
-                  In Workday, under October onboarding. Twelve people, all with a start date
-                  this month.
-                </p>
+            <div className="grid items-center gap-10 lg:grid-cols-[1fr_minmax(0,30rem)_1fr] lg:gap-8">
+              {/* Left rail — reads as annotation on the window, not as a caption */}
+              <div className="flex flex-col gap-8 lg:items-end lg:text-right">
+                <Callout className="lg:items-end">
+                  Reasoning you can audit, step by step
+                </Callout>
+                <Callout className="lg:items-end">Tool calls named, not implied</Callout>
+              </div>
 
-                <MessageBubble>Can you update the employee CRM with the new hires?</MessageBubble>
+              {/* min-w-0 so the code block inside the trace can't push the grid track
+                  wider than the viewport; order-first so a phone meets the window before
+                  the annotations that point at it. */}
+              <div className="order-first min-w-0 lg:order-none">
+                <ConversationWindow
+                  footer={
+                    <MultimodalInputBar
+                      style="expanded"
+                      voiceState={voiceState}
+                      onVoiceClick={() =>
+                        setVoiceState((s) =>
+                          s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"
+                        )
+                      }
+                      onSubmit={setSent}
+                    >
+                      <ParameterSelector label={approvalMode.label}>
+                        {APPROVAL_MODES.map((mode) => (
+                          <ParameterSelectorItem
+                            key={mode.id}
+                            label={mode.label}
+                            description={mode.description}
+                            active={mode.id === approvalMode.id}
+                            onSelect={() => setApprovalMode(mode)}
+                          />
+                        ))}
+                      </ParameterSelector>
+                      <ParameterSelector label={model.label} hint={model.hint}>
+                        {MODELS.map((option) => (
+                          <ParameterSelectorItem
+                            key={option.id}
+                            label={`${option.label} ${option.hint}`}
+                            description={option.description}
+                            active={option.id === model.id}
+                            onSelect={() => setModel(option)}
+                          />
+                        ))}
+                      </ParameterSelector>
+                    </MultimodalInputBar>
+                  }
+                >
+                  <MessageBubble>Where did the new starter list end up?</MessageBubble>
+                  <p className="text-sm leading-relaxed">
+                    In Workday, under October onboarding. Twelve people, all with a start date
+                    this month.
+                  </p>
 
-                <div className="flex flex-col">
-                  <ReasoningTimeline
-                    title="Use Application"
-                    icon={AppWindow}
-                    state="done"
-                    timestamp="3 min ago"
+                  <MessageBubble>
+                    Can you update the employee CRM with the new hires?
+                  </MessageBubble>
+
+                  <p className="text-sm leading-relaxed">
+                    Twelve records to copy across. I&apos;ll read them first and stop before the
+                    write if anything looks ambiguous.
+                  </p>
+
+                  <ReasoningTimelineSummary label="Thinking process for 21s" />
+
+                  <div className="flex flex-col">
+                    <ReasoningTimeline
+                      title="Use Application"
+                      icon={AppWindow}
+                      state="done"
+                      timestamp="3 min ago"
+                    />
+                    <ReasoningTimeline
+                      title="Added task : name of the task"
+                      icon={ListChecks}
+                      state="done"
+                      timestamp="2 min ago"
+                      style="code"
+                      code={"Request\n{\n}\n\nreturn {\n}"}
+                    />
+                    <ReasoningTimeline
+                      title="Writing the business cards"
+                      icon={Frame}
+                      state="ongoing"
+                      timestamp="now"
+                      showConnector={false}
+                    />
+                  </div>
+
+                  <p className="text-sm leading-relaxed">
+                    You now have 12 new employee contacts in the Employee CRM. Each has its own
+                    personalised business card on Figma.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <SourceChip label="Figma" icon={Frame} href="#" />
+                    <SourceChip label="Employee CRM" icon={Contact} href="#" />
+                    <SourceChip label="Wrote /Transaction" icon={Database} />
+                  </div>
+
+                  <ArtifactCard
+                    title="Employee cards.svg"
+                    meta="1.2 MB"
+                    generating={generating}
+                    progress={progress}
+                    onDownload={() => setProgress(35)}
+                    downloadLabel={generating ? "Download" : "Download again"}
                   />
-                  <ReasoningTimeline
-                    title="Added task : name of the task"
-                    icon={ListChecks}
-                    state="done"
-                    timestamp="2 min ago"
-                    style="code"
-                    code={"Request\n{\n}\n\nreturn {\n}"}
-                  />
-                  <ReasoningTimeline
-                    title="Done"
-                    state="done"
-                    timestamp="1 min ago"
-                    showConnector={false}
-                  />
-                </div>
 
-                <p className="text-sm leading-relaxed">
-                  You now have 12 new employee contacts in the Employee CRM. Each has its own
-                  personalised business card on Figma.
-                </p>
+                  <div className="flex items-center gap-3">
+                    <MessageActionRow timestamp="2 hours ago" />
+                    <ConfidenceBadge level="high" style="dot" />
+                  </div>
+                </ConversationWindow>
+              </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <SourceChip label="Figma" icon={Frame} href="#" />
-                  <SourceChip label="Employee CRM" icon={Contact} href="#" />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MessageActionRow timestamp="2 hours ago" />
-                  <ConfidenceBadge level="high" style="dot" />
-                </div>
-              </ChatPreview>
-
-              <ChatPreview>
-                <MessageBubble>Should this be a deck or a single page?</MessageBubble>
-                <p className="text-sm leading-relaxed">
-                  A single page reads better for a timeline — no slide breaks cutting the
-                  sequence in half. I&apos;ll lay it out left to right.
-                </p>
-                <MessageBubble>Good. Keep it light, not a lecture.</MessageBubble>
-
-                <MessageBubble>
-                  Present the history of AI to me in chronological order, in a playful way, from
-                  beginning to end.
-                </MessageBubble>
-
-                <ReasoningTimelineSummary label="Thinking process for 21s" />
-                <ReasoningTimeline
-                  title="vizualize"
-                  icon={Wrench}
-                  style="tool"
-                  detailed={false}
-                  state="done"
-                />
-
-                <p className="text-sm leading-relaxed">The hype curve, two winters included.</p>
-
-                <ArtifactCard
-                  title="AI history.svg"
-                  meta="1.2 MB"
-                  generating={generating}
-                  progress={progress}
-                  onDownload={() => setProgress(35)}
-                  downloadLabel={generating ? "Download" : "Download again"}
-                />
-
-                <MessageActionRow timestamp="2 hours ago" />
-              </ChatPreview>
+              {/* Right rail */}
+              <div className="flex flex-col gap-8">
+                <Callout>Provenance attached to the claim</Callout>
+                <Callout>Artifacts land inline, mid-thread</Callout>
+                <Callout>Confidence stated, not guessed at</Callout>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <MultimodalInputBar
-                style="expanded"
-                voiceState={voiceState}
-                onVoiceClick={() =>
-                  setVoiceState((s) =>
-                    s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"
-                  )
-                }
-                onSubmit={setSent}
-              >
-                <ParameterSelector label={approvalMode.label}>
-                  {APPROVAL_MODES.map((mode) => (
-                    <ParameterSelectorItem
-                      key={mode.id}
-                      label={mode.label}
-                      description={mode.description}
-                      active={mode.id === approvalMode.id}
-                      onSelect={() => setApprovalMode(mode)}
-                    />
-                  ))}
-                </ParameterSelector>
-                <ParameterSelector label={model.label} hint={model.hint}>
-                  {MODELS.map((option) => (
-                    <ParameterSelectorItem
-                      key={option.id}
-                      label={`${option.label} ${option.hint}`}
-                      description={option.description}
-                      active={option.id === model.id}
-                      onSelect={() => setModel(option)}
-                    />
-                  ))}
-                </ParameterSelector>
-              </MultimodalInputBar>
-              {sent && (
-                <span className="text-xs text-muted-foreground">
-                  Sent to {model.label} {model.hint}, {approvalMode.label.toLowerCase()}: “{sent}”
-                </span>
-              )}
-            </div>
-          </div>
-        </section>
-      </Reveal>
-
-      {/* ── The rest of the set, quietly ────────────────────────────────── */}
-      <Reveal>
-        <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">
-          <div className="flex max-w-2xl flex-col gap-4">
-            <Eyebrow>The rest of the set</Eyebrow>
-            <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
-              Twenty parts, one grammar.
-            </h2>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              Permissions, autonomy, artifacts, confidence, provenance, audit. Every one of
-              them themeable from the panel on the left.
-            </p>
-          </div>
-
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Tile className="sm:col-span-2 lg:col-span-1">
-              <ScopePermissionGroup className="w-full">
-                {SCOPES.map((scope) => (
-                  <ScopePermissionCard
-                    key={scope.id}
-                    style="grouped"
-                    icon={scope.icon}
-                    label={scope.label}
-                    checked={scopes[scope.id]}
-                    onCheckedChange={(next) => setScopes((s) => ({ ...s, [scope.id]: next }))}
-                  />
-                ))}
-              </ScopePermissionGroup>
-            </Tile>
-
-            <Tile>
-              <AutonomyLevelSelector className="w-full" />
-            </Tile>
-
-            <Tile>
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <ConfidenceBadge level="high" />
-                  <ConfidenceBadge level="medium" />
-                  <ConfidenceBadge level="low" />
-                </div>
-                <ConfidenceBadge level="medium" style="percentage" />
-              </div>
-            </Tile>
-
-            <Tile className="sm:col-span-2">
-              <div className="flex w-full flex-col">
-                {ACTIVITY.map((entry) => (
-                  <ActivityLogRow
-                    key={entry.action}
-                    actor={entry.actor}
-                    action={entry.action}
-                    timestamp={entry.timestamp}
-                    isError={entry.isError}
-                  />
-                ))}
-              </div>
-            </Tile>
-
-            <Tile>
-              <div className="flex flex-col items-center gap-3">
-                <ArtifactCard title="brief.pdf" style="inline" />
-                <ArtifactCard
-                  className="w-full"
-                  title="Finance Dashboard"
-                  meta="18.2 MB"
-                  style="compact"
-                />
-              </div>
-            </Tile>
-
-            <Tile>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <SourceChip label="Figma" icon={Frame} href="#" />
-                <SourceChip label="Employee CRM" icon={Contact} href="#" />
-                <SourceChip label="Wrote /Transaction" icon={Database} />
-              </div>
-            </Tile>
-
-            <Tile>
-              <div className="flex flex-col items-center gap-4">
-                <MessageActionRow timestamp="2 hours ago" />
-                <ReasoningTimelineSummary label="Thinking process for 21s" />
-              </div>
-            </Tile>
-
-            <Tile>
-              <div className="flex w-full flex-col items-center gap-3">
-                <UndoRevokeBar
-                  seconds={124}
-                  style="banner"
-                  message="Meeting moved to 11:10 AM"
-                  className="w-full"
-                />
-                <AgentErrorCard
-                  className="w-full"
-                  style="banner"
-                  title="Coundn't move the meeting"
-                />
-              </div>
-            </Tile>
+            {sent && (
+              <span className="text-center text-xs text-muted-foreground">
+                Sent to {model.label} {model.hint}, {approvalMode.label.toLowerCase()}: “{sent}”
+              </span>
+            )}
           </div>
         </section>
       </Reveal>

@@ -104,8 +104,11 @@ export function MultimodalInputBar({
   return (
     <div className={cn(multimodalInputBarVariants({ style, state: resolvedState }), className)}>
       {field}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+      {/* Wraps rather than overflowing: with parameter selectors passed in as children,
+          the toolbar outgrows a narrow bar — in a phone-width chat panel the send button
+          was being clipped off the right edge. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1">
           <Button variant="ghost" size="icon-lg" aria-label="Add context">
             <Plus strokeWidth={1.75} />
           </Button>
@@ -119,7 +122,7 @@ export function MultimodalInputBar({
             label={voiceState === "idle" ? "" : undefined}
           />
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
           {children}
           <Button
             size="icon-lg"
