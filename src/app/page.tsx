@@ -120,26 +120,54 @@ const EXAMPLES = [
   },
 ] as const;
 
-/** Countdown that stops at zero and can be rearmed. */
-function useCountdown(initial: number) {
+/**
+ * Ticks only while `armed`. The undo window is five seconds long, so if it started at
+ * page load it had always expired by the time anyone scrolled down to it — the section
+ * arms it when it comes into view instead.
+ */
+function useCountdown(initial: number, armed = true) {
   const [seconds, setSeconds] = React.useState(initial);
-  const [running, setRunning] = React.useState(true);
+  const [stopped, setStopped] = React.useState(false);
 
   React.useEffect(() => {
-    if (!running || seconds <= 0) return;
+    if (!armed || stopped || seconds <= 0) return;
     const id = window.setTimeout(() => setSeconds((s) => s - 1), 1000);
     return () => window.clearTimeout(id);
-  }, [running, seconds]);
+  }, [armed, stopped, seconds]);
 
   return {
     seconds,
-    running,
-    stop: () => setRunning(false),
+    stop: () => setStopped(true),
     restart: () => {
       setSeconds(initial);
-      setRunning(true);
+      setStopped(false);
     },
   };
+}
+
+/** True once the element has been scrolled into the page's scroll container. */
+function useInView<T extends HTMLElement>() {
+  const ref = React.useRef<T>(null);
+  const [inView, setInView] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { root: el.closest("main"), rootMargin: "0px 0px -15% 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, inView] as const;
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -201,10 +229,48 @@ function Reveal({ children }: { children: React.ReactNode }) {
 }
 
 /**
+ * Bento tiles carry a colour rather than all sitting on the same grey card: a wash of
+ * one semantic token bleeding out of the top-left corner into --card. Keeps every
+ * foreground on its normal token, so tinting costs nothing in legibility.
+ */
+type Tone = "plain" | "primary" | "info" | "success" | "warning" | "destructive";
+
+const TONE: Record<Tone, string> = {
+  plain: "border-border bg-card",
+  primary: "border-primary/40 bg-gradient-to-br from-primary/25 via-card to-card",
+  info: "border-info/40 bg-gradient-to-br from-info/25 via-card to-card",
+  success: "border-success/40 bg-gradient-to-br from-success/25 via-card to-card",
+  warning: "border-warning/40 bg-gradient-to-br from-warning/25 via-card to-card",
+  destructive:
+    "border-destructive/40 bg-gradient-to-br from-destructive/25 via-card to-card",
+};
+
+function Tile({
+  children,
+  tone = "plain",
+  className,
+}: {
+  children: React.ReactNode;
+  tone?: Tone;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-center justify-center rounded-2xl border p-4 shadow-sm",
+        TONE[tone],
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
  * The plinth a component is presented on. A showcase lives or dies on this: the same
  * card looks like debug output on a bare page and like a product shot once it is lit,
- * raised and given room. Gradient from --card down to --sidebar, a real shadow, and a
- * soft bloom of the brand colour behind the whole thing.
+ * raised and given room.
  */
 function Stage({
   children,
@@ -274,20 +340,6 @@ function Feature({
   );
 }
 
-/** A quiet card for the closing gallery — no glow, no label, just room around one part. */
-function Tile({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "flex min-h-36 items-center justify-center rounded-2xl border bg-card p-6 shadow-sm",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex items-baseline gap-2">
@@ -298,30 +350,8 @@ function Metric({ value, label }: { value: string; label: string }) {
 }
 
 /**
- * A short line of annotation set against the conversation window, the way Intercom
- * labels the capabilities of its agent around a single chat panel. Not a caption under
- * a component — it names what the thread beside it is demonstrating.
- */
-function Callout({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <span aria-hidden className="h-px w-10 bg-primary/50" />
-      <span className="max-w-52 text-sm leading-snug font-medium">{children}</span>
-    </div>
-  );
-}
-
-/**
  * One conversation, presented as the product surface it is: window chrome with the
- * agent's live status, the thread, and the composer fixed at the foot. Replaces the two
- * side-by-side thread specimens that used to sit here — two parallel half-conversations
- * read as samples, where one complete exchange reads as the product.
+ * agent's live status, the thread, and the composer fixed at the foot.
  *
  * The thread opens pinned to its latest turn, the way a live one would, which is what
  * puts earlier messages behind the faded top edge.
@@ -353,7 +383,7 @@ function ConversationWindow({
         className="pointer-events-none absolute -inset-5 rounded-[2.5rem] bg-primary/10 blur-3xl"
       />
       <div className="relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
-        <div className="flex items-center gap-2.5 border-b bg-gradient-to-b from-sidebar to-card px-4 py-3">
+        <div className="flex items-center gap-2.5 border-b bg-gradient-to-b from-sidebar to-card px-5 py-3.5">
           <span
             aria-hidden
             className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.625rem] font-semibold text-primary-foreground"
@@ -372,7 +402,7 @@ function ConversationWindow({
         <div className="relative">
           {/* Fixed height, not max-height: the thread has to genuinely overflow for the
               faded top edge to be hiding something. */}
-          <div ref={scroller} className="flex h-[24rem] flex-col gap-4 overflow-y-auto p-5">
+          <div ref={scroller} className="flex h-[26rem] flex-col gap-7 overflow-y-auto p-6">
             {children}
           </div>
           <div
@@ -425,8 +455,10 @@ export default function ComponentsScreen() {
   // Approval modal
   const [approvalState, setApprovalState] = React.useState<"idle" | "running" | "done">("idle");
 
-  // Undo window after the agent moved the meeting on its own
-  const undo = useCountdown(UNDO_WINDOW_SECONDS);
+  // Undo window after the agent moved the meeting on its own. Armed on scroll, so the
+  // five-second window is still running when it is actually looked at.
+  const [undoRef, undoInView] = useInView<HTMLDivElement>();
+  const undo = useCountdown(UNDO_WINDOW_SECONDS, undoInView);
   const [undone, setUndone] = React.useState(false);
 
   // Scope permissions
@@ -497,13 +529,13 @@ export default function ComponentsScreen() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      {/* ── Hero: one claim, one product shot ───────────────────────────── */}
+      {/* ── Hero: the claim, then the whole set as a bento underneath ───── */}
       <section className="relative overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_55%_at_50%_-10%,var(--color-primary)_0%,transparent_60%)] opacity-[0.14]"
         />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-20 pb-14 text-center lg:pt-28">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-20 pb-12 text-center lg:pt-28">
           <Eyebrow>Douglas · Design system</Eyebrow>
           <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold tracking-[-0.02em] leading-[1.05] sm:text-5xl lg:text-6xl">
             Interfaces for agents
@@ -531,52 +563,11 @@ export default function ComponentsScreen() {
           </div>
         </div>
 
-        {/* The one hero shot. Everything else on the page is downstream of this. */}
-        <div className="relative mx-auto max-w-3xl px-6 pb-16 lg:pb-24">
-          <Stage align="stretch">
-            <ApprovalModal
-              className="w-full border-0 bg-transparent p-0 shadow-none"
-              title="Confirm irreversible action"
-              description="This action can't be undone once executed. Review the change before confirming."
-              confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
-              loading={approvalState === "running"}
-              onConfirm={() => setApprovalState("running")}
-              onCancel={() => setApprovalState("idle")}
-            >
-              <ApprovalModalDiff
-                title="Scheduled meeting"
-                before="Oct 22 • 11 AM"
-                after="Oct 22 • 11:10 AM"
-                icon={Calendar}
-              />
-            </ApprovalModal>
-          </Stage>
-        </div>
-
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-10 gap-y-4 border-t px-6 py-8">
-          <Metric value="20" label="components" />
-          <Metric value="5" label="themes" />
-          <Metric value="3" label="screens" />
-          <Metric value="AA" label="contrast audited" />
-        </div>
-      </section>
-
-      {/* ── The set, up front: breadth first, then the arguments ────────── */}
-      <Reveal>
-        <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">
-          <div className="flex max-w-2xl flex-col gap-4">
-            <Eyebrow>The set</Eyebrow>
-            <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
-              Twenty parts, one grammar.
-            </h2>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              Permissions, autonomy, artifacts, confidence, provenance, audit. Every one of
-              them themeable from the panel on the left.
-            </p>
-          </div>
-
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Tile className="sm:col-span-2 lg:col-span-1">
+        {/* The set, live, right under the claim. Dense flow so the short tiles pack in
+            beside the tall ones instead of leaving holes. */}
+        <div className="relative mx-auto w-full max-w-6xl px-6 pb-14">
+          <div className="grid grid-flow-row-dense grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            <Tile tone="success" className="col-span-2 row-span-2">
               <ScopePermissionGroup className="w-full">
                 {SCOPES.map((scope) => (
                   <ScopePermissionCard
@@ -591,22 +582,33 @@ export default function ComponentsScreen() {
               </ScopePermissionGroup>
             </Tile>
 
-            <Tile>
-              <AutonomyLevelSelector className="w-full" />
-            </Tile>
-
-            <Tile>
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <ConfidenceBadge level="high" />
-                  <ConfidenceBadge level="medium" />
-                  <ConfidenceBadge level="low" />
+            <Tile tone="warning" className="col-span-2 row-span-2">
+              {resolved ? (
+                <div className="flex w-full flex-col gap-2">
+                  <span className="text-sm font-semibold">Conflict resolved</span>
+                  <span className="text-xs text-muted-foreground">
+                    Keeping {DUPLICATE_CONTACTS.find((c) => c.id === resolved)?.label}.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setResolved(null)}
+                    className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    Ask again
+                  </button>
                 </div>
-                <ConfidenceBadge level="medium" style="percentage" />
-              </div>
+              ) : (
+                <ConflictAmbiguityCard
+                  className="w-full border-0 bg-transparent p-0 shadow-none"
+                  title="Two records match “Ada Lovelace”"
+                  description="Pick the source of truth before the write."
+                  options={DUPLICATE_CONTACTS}
+                  onSelect={setResolved}
+                />
+              )}
             </Tile>
 
-            <Tile className="sm:col-span-2">
+            <Tile className="col-span-2 row-span-2">
               <div className="flex w-full flex-col">
                 {ACTIVITY.map((entry) => (
                   <ActivityLogRow
@@ -620,19 +622,11 @@ export default function ComponentsScreen() {
               </div>
             </Tile>
 
-            <Tile>
-              <div className="flex flex-col items-center gap-3">
-                <ArtifactCard title="brief.pdf" style="inline" />
-                <ArtifactCard
-                  className="w-full"
-                  title="Finance Dashboard"
-                  meta="18.2 MB"
-                  style="compact"
-                />
-              </div>
+            <Tile tone="primary" className="col-span-2 sm:col-span-2 lg:col-span-3">
+              <AutonomyLevelSelector className="w-full" />
             </Tile>
 
-            <Tile>
+            <Tile tone="info" className="col-span-2 sm:col-span-2 lg:col-span-3">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <SourceChip label="Figma" icon={Frame} href="#" />
                 <SourceChip label="Employee CRM" icon={Contact} href="#" />
@@ -640,39 +634,81 @@ export default function ComponentsScreen() {
               </div>
             </Tile>
 
-            <Tile>
-              <div className="flex flex-col items-center gap-4">
+            <Tile tone="primary" className="col-span-2">
+              <ArtifactCard
+                className="w-full border-0 bg-transparent shadow-none"
+                title="Finance Dashboard"
+                meta="18.2 MB"
+                style="compact"
+              />
+            </Tile>
+
+            <Tile tone="warning" className="col-span-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <ConfidenceBadge level="high" />
+                <ConfidenceBadge level="medium" />
+                <ConfidenceBadge level="low" />
+              </div>
+            </Tile>
+
+            <Tile tone="destructive" className="col-span-2">
+              <AgentErrorCard
+                className="w-full bg-transparent"
+                style="banner"
+                title="Coundn't move the meeting"
+              />
+            </Tile>
+
+            <Tile tone="info" className="col-span-2 lg:col-span-3">
+              <ScheduledTaskCard
+                className="w-full bg-transparent"
+                style="compact"
+                title="Nightly backup sync"
+                frequency="2:00 AM"
+              />
+            </Tile>
+
+            <Tile className="col-span-2 lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-center gap-4">
                 <MessageActionRow timestamp="2 hours ago" />
                 <ReasoningTimelineSummary label="Thinking process for 21s" />
               </div>
             </Tile>
-
-            <Tile>
-              <div className="flex w-full flex-col items-center gap-3">
-                <UndoRevokeBar
-                  seconds={124}
-                  style="banner"
-                  message="Meeting moved to 11:10 AM"
-                  className="w-full"
-                />
-                <AgentErrorCard
-                  className="w-full"
-                  style="banner"
-                  title="Coundn't move the meeting"
-                />
-              </div>
-            </Tile>
           </div>
-        </section>
-      </Reveal>
+        </div>
+
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-10 gap-y-4 border-t px-6 py-8">
+          <Metric value="20" label="components" />
+          <Metric value="5" label="themes" />
+          <Metric value="3" label="screens" />
+          <Metric value="AA" label="contrast audited" />
+        </div>
+      </section>
 
       {/* ── Features: one argument, one visual, alternating ─────────────── */}
       <Feature
         eyebrow="Before acting"
-        title="It asks, then it waits."
-        body="When more than one reading of the request is defensible, the agent stops and says so instead of picking one and hoping. Clarification is a first-class state, not an error."
+        title="Nothing runs unannounced."
+        body="An irreversible change is shown as a before and an after, and waits. When more than one reading of the request is defensible, the agent asks rather than picking one and hoping."
         align="stretch"
       >
+        <ApprovalModal
+          className="w-full border-0 bg-transparent p-0 shadow-none"
+          title="Confirm irreversible action"
+          description="This action can't be undone once executed. Review the change before confirming."
+          confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
+          loading={approvalState === "running"}
+          onConfirm={() => setApprovalState("running")}
+          onCancel={() => setApprovalState("idle")}
+        >
+          <ApprovalModalDiff
+            title="Scheduled meeting"
+            before="Oct 22 • 11 AM"
+            after="Oct 22 • 11:10 AM"
+            icon={Calendar}
+          />
+        </ApprovalModal>
+
         {allAnswered ? (
           <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
             <span className="text-sm font-semibold">All set</span>
@@ -699,30 +735,6 @@ export default function ComponentsScreen() {
               setAnswers((a) => [...a, answer]);
               setQuestionIndex((i) => i + 1);
             }}
-          />
-        )}
-
-        {resolved ? (
-          <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
-            <span className="text-sm font-semibold">Conflict resolved</span>
-            <span className="text-xs text-muted-foreground">
-              Keeping {DUPLICATE_CONTACTS.find((c) => c.id === resolved)?.label}.
-            </span>
-            <button
-              type="button"
-              onClick={() => setResolved(null)}
-              className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
-            >
-              Ask again
-            </button>
-          </div>
-        ) : (
-          <ConflictAmbiguityCard
-            className="w-full"
-            title="Two records match “Ada Lovelace”"
-            description="Pick the one to treat as the source of truth before the write."
-            options={DUPLICATE_CONTACTS}
-            onSelect={setResolved}
           />
         )}
       </Feature>
@@ -788,7 +800,7 @@ export default function ComponentsScreen() {
             onRevoke: () => setActionState("pending"),
           }}
         />
-        <div className="flex w-full justify-center">
+        <div ref={undoRef} className="flex w-full justify-center">
           {undone ? (
             <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
               Reverted. The meeting is back at 11 AM.
@@ -823,16 +835,22 @@ export default function ComponentsScreen() {
         align="stretch"
         reverse
       >
-        <DelegationCard className="w-full" onSubmit={(draft) => setDelegated(draft.task)} />
-        <ScheduledTaskCard
-          className="w-full"
-          title={delegated ?? "Weekly competitor price check"}
-          description="Tracks 3 competitor sites and flags price changes."
-          frequency={delegated ? "Delegated just now" : "Every Monday at 7:00 AM"}
-          status={taskEnabled ? "Next run in 3 days" : "Paused"}
-          enabled={taskEnabled}
-          onEnabledChange={setTaskEnabled}
-        />
+        {/* Overlapped on purpose — the schedule is a second, different object that the
+            delegation produces, not another field on the same form. */}
+        <div className="relative w-full pb-6">
+          <DelegationCard
+            className="relative z-10 w-full shadow-lg"
+            onSubmit={(draft) => setDelegated(draft.task)}
+          />
+          <ScheduledTaskCard
+            className="relative z-0 -mt-4 ml-6 w-[calc(100%-3rem)] shadow-md"
+            style="list"
+            title={delegated ?? "Weekly competitor price check"}
+            frequency={delegated ? "Delegated just now" : "Every Monday at 7:00 AM"}
+            enabled={taskEnabled}
+            onEnabledChange={setTaskEnabled}
+          />
+        </div>
       </Feature>
 
       <Feature
@@ -866,145 +884,108 @@ export default function ComponentsScreen() {
         </div>
       </Feature>
 
-      {/* ── Conversation: one window, annotated the way Intercom presents Fin ── */}
+      {/* ── Conversation: one window, centred, nothing written around it ── */}
       <Reveal>
         <section className="border-y bg-sidebar">
-          <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16 lg:py-24">
-            <div className="flex max-w-2xl flex-col gap-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-16 lg:py-24">
+            <div className="flex flex-col gap-4 text-center">
               <Eyebrow>In conversation</Eyebrow>
               <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
                 One thread, and nothing hidden in it.
               </h2>
-              <p className="text-base leading-relaxed text-muted-foreground">
+              <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
                 A single exchange, start to finish: the request, the trace of how it was
-                answered, what it touched, what it produced, and how sure it was.
+                answered, what it touched, and what it produced.
               </p>
             </div>
 
-            <div className="grid items-center gap-10 lg:grid-cols-[1fr_minmax(0,30rem)_1fr] lg:gap-8">
-              {/* Left rail — reads as annotation on the window, not as a caption */}
-              <div className="flex flex-col gap-8 lg:items-end lg:text-right">
-                <Callout className="lg:items-end">
-                  Reasoning you can audit, step by step
-                </Callout>
-                <Callout className="lg:items-end">Tool calls named, not implied</Callout>
-              </div>
+            <div className="min-w-0">
+              <ConversationWindow
+                footer={
+                  <MultimodalInputBar
+                    style="expanded"
+                    voiceState={voiceState}
+                    onVoiceClick={() =>
+                      setVoiceState((s) =>
+                        s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"
+                      )
+                    }
+                    onSubmit={setSent}
+                  >
+                    <ParameterSelector label={approvalMode.label}>
+                      {APPROVAL_MODES.map((mode) => (
+                        <ParameterSelectorItem
+                          key={mode.id}
+                          label={mode.label}
+                          description={mode.description}
+                          active={mode.id === approvalMode.id}
+                          onSelect={() => setApprovalMode(mode)}
+                        />
+                      ))}
+                    </ParameterSelector>
+                    <ParameterSelector label={model.label} hint={model.hint}>
+                      {MODELS.map((option) => (
+                        <ParameterSelectorItem
+                          key={option.id}
+                          label={`${option.label} ${option.hint}`}
+                          description={option.description}
+                          active={option.id === model.id}
+                          onSelect={() => setModel(option)}
+                        />
+                      ))}
+                    </ParameterSelector>
+                  </MultimodalInputBar>
+                }
+              >
+                <MessageBubble>
+                  Can you update the employee CRM with the new hires?
+                </MessageBubble>
 
-              {/* min-w-0 so the code block inside the trace can't push the grid track
-                  wider than the viewport; order-first so a phone meets the window before
-                  the annotations that point at it. */}
-              <div className="order-first min-w-0 lg:order-none">
-                <ConversationWindow
-                  footer={
-                    <MultimodalInputBar
-                      style="expanded"
-                      voiceState={voiceState}
-                      onVoiceClick={() =>
-                        setVoiceState((s) =>
-                          s === "idle" ? "listening" : s === "listening" ? "processing" : "idle"
-                        )
-                      }
-                      onSubmit={setSent}
-                    >
-                      <ParameterSelector label={approvalMode.label}>
-                        {APPROVAL_MODES.map((mode) => (
-                          <ParameterSelectorItem
-                            key={mode.id}
-                            label={mode.label}
-                            description={mode.description}
-                            active={mode.id === approvalMode.id}
-                            onSelect={() => setApprovalMode(mode)}
-                          />
-                        ))}
-                      </ParameterSelector>
-                      <ParameterSelector label={model.label} hint={model.hint}>
-                        {MODELS.map((option) => (
-                          <ParameterSelectorItem
-                            key={option.id}
-                            label={`${option.label} ${option.hint}`}
-                            description={option.description}
-                            active={option.id === model.id}
-                            onSelect={() => setModel(option)}
-                          />
-                        ))}
-                      </ParameterSelector>
-                    </MultimodalInputBar>
-                  }
-                >
-                  <MessageBubble>Where did the new starter list end up?</MessageBubble>
-                  <p className="text-sm leading-relaxed">
-                    In Workday, under October onboarding. Twelve people, all with a start date
-                    this month.
-                  </p>
+                <p className="text-sm leading-relaxed">
+                  Twelve people in Workday, under October onboarding. I&apos;ll read them
+                  first and stop before the write if anything looks ambiguous.
+                </p>
 
-                  <MessageBubble>
-                    Can you update the employee CRM with the new hires?
-                  </MessageBubble>
-
-                  <p className="text-sm leading-relaxed">
-                    Twelve records to copy across. I&apos;ll read them first and stop before the
-                    write if anything looks ambiguous.
-                  </p>
-
-                  <ReasoningTimelineSummary label="Thinking process for 21s" />
-
-                  <div className="flex flex-col">
-                    <ReasoningTimeline
-                      title="Use Application"
-                      icon={AppWindow}
-                      state="done"
-                      timestamp="3 min ago"
-                    />
-                    <ReasoningTimeline
-                      title="Added task : name of the task"
-                      icon={ListChecks}
-                      state="done"
-                      timestamp="2 min ago"
-                      style="code"
-                      code={"Request\n{\n}\n\nreturn {\n}"}
-                    />
-                    <ReasoningTimeline
-                      title="Writing the business cards"
-                      icon={Frame}
-                      state="ongoing"
-                      timestamp="now"
-                      showConnector={false}
-                    />
-                  </div>
-
-                  <p className="text-sm leading-relaxed">
-                    You now have 12 new employee contacts in the Employee CRM. Each has its own
-                    personalised business card on Figma.
-                  </p>
-
-                  <div className="flex flex-wrap gap-2">
-                    <SourceChip label="Figma" icon={Frame} href="#" />
-                    <SourceChip label="Employee CRM" icon={Contact} href="#" />
-                    <SourceChip label="Wrote /Transaction" icon={Database} />
-                  </div>
-
-                  <ArtifactCard
-                    title="Employee cards.svg"
-                    meta="1.2 MB"
-                    generating={generating}
-                    progress={progress}
-                    onDownload={() => setProgress(35)}
-                    downloadLabel={generating ? "Download" : "Download again"}
+                <div className="flex flex-col">
+                  <ReasoningTimeline
+                    title="Use Application"
+                    icon={AppWindow}
+                    state="done"
+                    timestamp="3 min ago"
                   />
+                  <ReasoningTimeline
+                    title="Writing the business cards"
+                    icon={Frame}
+                    state="ongoing"
+                    timestamp="now"
+                    showConnector={false}
+                  />
+                </div>
 
-                  <div className="flex items-center gap-3">
-                    <MessageActionRow timestamp="2 hours ago" />
-                    <ConfidenceBadge level="high" style="dot" />
-                  </div>
-                </ConversationWindow>
-              </div>
+                <p className="text-sm leading-relaxed">
+                  You now have 12 new employee contacts in the Employee CRM, each with its
+                  own business card on Figma.
+                </p>
 
-              {/* Right rail */}
-              <div className="flex flex-col gap-8">
-                <Callout>Provenance attached to the claim</Callout>
-                <Callout>Artifacts land inline, mid-thread</Callout>
-                <Callout>Confidence stated, not guessed at</Callout>
-              </div>
+                <div className="flex flex-wrap gap-2">
+                  <SourceChip label="Figma" icon={Frame} href="#" />
+                  <SourceChip label="Employee CRM" icon={Contact} href="#" />
+                </div>
+
+                <ArtifactCard
+                  title="Employee cards.svg"
+                  meta="1.2 MB"
+                  generating={generating}
+                  progress={progress}
+                  onDownload={() => setProgress(35)}
+                  downloadLabel={generating ? "Download" : "Download again"}
+                />
+
+                <div className="flex items-center gap-3">
+                  <MessageActionRow timestamp="2 hours ago" />
+                  <ConfidenceBadge level="high" style="dot" />
+                </div>
+              </ConversationWindow>
             </div>
 
             {sent && (
@@ -1018,7 +999,7 @@ export default function ComponentsScreen() {
 
       {/* ── Examples ────────────────────────────────────────────────────── */}
       <Reveal>
-        <section id="examples" className="border-t bg-sidebar">
+        <section id="examples" className="border-t">
           <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 lg:py-24">
             <div className="flex max-w-2xl flex-col gap-4">
               <Eyebrow>See it assembled</Eyebrow>

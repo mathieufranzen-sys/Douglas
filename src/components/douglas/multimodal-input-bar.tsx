@@ -106,8 +106,10 @@ export function MultimodalInputBar({
       {field}
       {/* Wraps rather than overflowing: with parameter selectors passed in as children,
           the toolbar outgrows a narrow bar — in a phone-width chat panel the send button
-          was being clipped off the right edge. */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+          was being clipped off the right edge. ml-auto rather than justify-between on the
+          row, so send stays hard right whether or not the group has wrapped onto a line
+          of its own; justify-between would leave it at flex-start once alone. */}
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <Button variant="ghost" size="icon-lg" aria-label="Add context">
             <Plus strokeWidth={1.75} />
@@ -122,7 +124,7 @@ export function MultimodalInputBar({
             label={voiceState === "idle" ? "" : undefined}
           />
         </div>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
           {children}
           <Button
             size="icon-lg"
