@@ -18,6 +18,8 @@ import {
   Inbox,
   Blocks,
   ArrowUpRight,
+  ArrowRight,
+  ExternalLink,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -51,7 +53,11 @@ import { SourceChip } from "@/components/douglas/source-chip";
 import { MessageBubble } from "@/components/douglas/message-bubble";
 import { MessageActionRow } from "@/components/douglas/message-action-row";
 import { ConfidenceBadge } from "@/components/douglas/confidence-badge";
+import { Button } from "@/components/ui/button";
 import type { VoiceState } from "@/components/douglas/voice-status-pill";
+
+const FIGMA_URL =
+  "https://www.figma.com/design/y2p1cRz0jVS0gHCI5dPavR/Untitled?node-id=291-127590";
 
 const UNDO_WINDOW_SECONDS = 5;
 
@@ -87,7 +93,6 @@ const DUPLICATE_CONTACTS = [
 const ACTIVITY: { actor: "agent" | "user"; action: string; timestamp: string; isError?: boolean }[] = [
   { actor: "user", action: "Asked to update the employee CRM", timestamp: "11:02" },
   { actor: "agent", action: "Read 12 records from Workday", timestamp: "11:02" },
-  { actor: "agent", action: "Wrote 12 contacts to Employee CRM", timestamp: "11:04" },
   { actor: "agent", action: "Couldn't reach the Figma API", timestamp: "11:05", isError: true },
   { actor: "agent", action: "Generated 12 business cards", timestamp: "11:06" },
 ];
@@ -137,85 +142,141 @@ function useCountdown(initial: number) {
   };
 }
 
-/**
- * A numbered chapter of the agent lifecycle. The showcase is ordered by the moment a
- * component is reached for — before acting, during, after — rather than by component
- * name, so the set reads as one argument instead of a parts bin. The intent line is the
- * only prose on the page: individual tiles carry no caption, because a component that
- * needs a sentence to be understood has failed at being a component.
- */
-function Section({
-  index,
-  title,
-  intent,
-  children,
-}: {
-  index: string;
-  title: string;
-  intent: string;
-  children: React.ReactNode;
-}) {
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1 border-b pb-3">
-        <div className="flex items-baseline gap-2.5">
-          <span className="font-mono text-xs font-semibold text-primary">{index}</span>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        </div>
-        <p className="max-w-2xl text-xs text-muted-foreground">{intent}</p>
-      </div>
+    <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
       {children}
-    </section>
+    </span>
   );
 }
 
 /**
- * A real bento: a 6-column grid with dense auto-placement and a small shared row unit,
- * so tiles of uneven natural height still pack against each other instead of each
- * claiming a uniform cell and leaving blank space under whichever is shortest. `span`
- * is a hand-picked estimate of how much of that grid a tile's actual content fills —
- * there is no live masonry measuring it, so a size that is a little generous is the
- * safe direction; a little short just lets the row grow rather than clipping anything.
+ * Fades a section up as it comes into view. Deliberately an observer and not a CSS
+ * `view()` timeline: this page scrolls inside <main>, not the document, and measured
+ * against that nested scrollport view() reported every section as long past fully
+ * revealed while it was still below the fold, so the animation was a no-op.
+ *
+ * Renders visible and only hides itself once JS is running and the section is confirmed
+ * off screen — in a layout effect, so it happens before paint and nothing flashes. With
+ * no JS, or with reduced motion asked for, the content just stays where it is.
  */
-function Bento({ children }: { children: React.ReactNode }) {
+function Reveal({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [hidden, setHidden] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const root = el.closest("main");
+    const limit = root ? root.getBoundingClientRect().bottom : window.innerHeight;
+    if (el.getBoundingClientRect().top < limit) return;
+
+    setHidden(true);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setHidden(false);
+          observer.disconnect();
+        }
+      },
+      { root, rootMargin: "0px 0px -10% 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="grid grid-flow-row-dense grid-cols-2 gap-4 auto-rows-[minmax(3.25rem,auto)] sm:grid-cols-4 lg:grid-cols-6">
+    <div
+      ref={ref}
+      className={cn(
+        "transition-[opacity,translate] duration-700 ease-out motion-reduce:transition-none",
+        hidden ? "translate-y-5 opacity-0" : "translate-y-0 opacity-100"
+      )}
+    >
       {children}
     </div>
   );
 }
 
-type Span = "xs" | "sm" | "md" | "md-tall" | "lg" | "lg-tall" | "wide";
-
-const SPAN_CLASS: Record<Span, string> = {
-  xs: "col-span-2 row-span-1",
-  sm: "col-span-2 row-span-2",
-  md: "col-span-2 row-span-1 sm:col-span-2 lg:col-span-3",
-  "md-tall": "col-span-2 row-span-2 sm:col-span-2 lg:col-span-3",
-  lg: "col-span-2 row-span-1 sm:col-span-4 lg:col-span-4",
-  "lg-tall": "col-span-2 row-span-2 sm:col-span-4 lg:col-span-4",
-  wide: "col-span-2 row-span-1 sm:col-span-4 lg:col-span-6",
-};
-
 /**
- * The plate a component is pinned to. This is what the --sidebar family is for:
- * background → sidebar → card gives three real surfaces, so a card reads as raised
- * instead of dissolving into the page.
+ * The plinth a component is presented on. A showcase lives or dies on this: the same
+ * card looks like debug output on a bare page and like a product shot once it is lit,
+ * raised and given room. Gradient from --card down to --sidebar, a real shadow, and a
+ * soft bloom of the brand colour behind the whole thing.
  */
-function Specimen({
+function Stage({
   children,
-  span = "md",
   className,
+  align = "center",
 }: {
   children: React.ReactNode;
-  span?: Span;
   className?: string;
+  align?: "center" | "stretch";
 }) {
+  return (
+    <div className={cn("relative", className)}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-primary/10 blur-3xl sm:-inset-8"
+      />
+      <div
+        className={cn(
+          "relative flex flex-col gap-5 rounded-2xl border bg-gradient-to-b from-card to-sidebar p-6 shadow-xl sm:p-8",
+          align === "center" ? "items-center" : "items-stretch"
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One argument, one visual, alternating sides down the page — the rhythm every product
+ * site in this reference set uses. Prose is the only text; the component beside it has
+ * no caption, because it has to be self-explanatory to be worth shipping.
+ */
+function Feature({
+  eyebrow,
+  title,
+  body,
+  reverse,
+  align,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  reverse?: boolean;
+  align?: "center" | "stretch";
+  children: React.ReactNode;
+}) {
+  return (
+    <Reveal>
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:gap-20 lg:py-24">
+        <div className={cn("flex flex-col items-start gap-4", reverse && "lg:order-2")}>
+          <Eyebrow>{eyebrow}</Eyebrow>
+          <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+            {title}
+          </h2>
+          <p className="max-w-md text-base leading-relaxed text-muted-foreground">{body}</p>
+        </div>
+        <Stage align={align} className={cn(reverse && "lg:order-1")}>
+          {children}
+        </Stage>
+      </section>
+    </Reveal>
+  );
+}
+
+/** A quiet card for the closing gallery — no glow, no label, just room around one part. */
+function Tile({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col items-start justify-center gap-3 rounded-xl border border-dashed bg-sidebar p-5",
-        SPAN_CLASS[span],
+        "flex min-h-36 items-center justify-center rounded-2xl border bg-card p-6 shadow-sm",
         className
       )}
     >
@@ -224,11 +285,11 @@ function Specimen({
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex flex-col rounded-lg border bg-card px-3 py-2">
-      <span className="text-lg font-semibold text-primary">{value}</span>
-      <span className="text-[0.6875rem] text-muted-foreground">{label}</span>
+    <div className="flex items-baseline gap-2">
+      <span className="text-2xl font-semibold tracking-tight">{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -261,15 +322,20 @@ function ChatPreview({
   }, []);
 
   return (
-    <div className={cn("relative overflow-hidden rounded-xl border bg-sidebar", className)}>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-2xl border bg-card shadow-sm",
+        className
+      )}
+    >
       {/* Fixed height, not max-height: the thread has to genuinely overflow for the
           faded top edge to be hiding something. */}
-      <div ref={scroller} className="flex h-[26rem] flex-col gap-4 overflow-y-auto p-4">
+      <div ref={scroller} className="flex h-[24rem] flex-col gap-4 overflow-y-auto p-5">
         {children}
       </div>
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-sidebar via-sidebar/85 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-card via-card/85 to-transparent"
       />
     </div>
   );
@@ -290,20 +356,20 @@ function ExampleCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col justify-between gap-8 rounded-xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/40"
+      className="group flex flex-col justify-between gap-10 rounded-2xl border bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
     >
       <div className="flex items-center justify-between">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="size-4" strokeWidth={1.75} />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-4.5" strokeWidth={1.75} />
         </span>
         <ArrowUpRight
-          className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+          className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
           strokeWidth={1.75}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="text-xs text-muted-foreground">{description}</span>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-base font-semibold">{title}</span>
+        <span className="text-sm leading-relaxed text-muted-foreground">{description}</span>
       </div>
     </Link>
   );
@@ -385,485 +451,372 @@ export default function ComponentsScreen() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      {/* Title band, on the recessed surface so the page opens on a plate rather than
-          straight into content. */}
-      <header className="border-b bg-sidebar px-6 py-9">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3">
-          <span className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Design system
-          </span>
-          <h1 className="max-w-3xl text-3xl font-semibold tracking-tight">
-            The components an agent needs to be trusted
+      {/* ── Hero: one claim, one product shot ───────────────────────────── */}
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_55%_at_50%_-10%,var(--color-primary)_0%,transparent_60%)] opacity-[0.14]"
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-20 pb-14 text-center lg:pt-28">
+          <Eyebrow>Douglas · Design system</Eyebrow>
+          <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold tracking-[-0.02em] leading-[1.05] sm:text-5xl lg:text-6xl">
+            Interfaces for agents
+            <br />
+            <span className="text-primary">you can actually trust.</span>
           </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Every block below is live: the countdowns run, the approvals resolve, the
-            questions advance. Ordered by the moment you reach for it, from asking
-            permission to recovering from a failure.
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Twenty components for showing intent before acting, making reasoning legible,
+            and keeping every automated move reversible.
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Stat value="20" label="Components" />
-            <Stat value="5" label="Themes" />
-            <Stat value="6" label="Moments" />
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" nativeButton={false} render={<a href="#examples" />}>
+              See it assembled
+              <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              nativeButton={false}
+              render={<a href={FIGMA_URL} target="_blank" rel="noreferrer" />}
+            >
+              Open in Figma
+              <ExternalLink data-icon="inline-end" strokeWidth={1.75} />
+            </Button>
           </div>
         </div>
-      </header>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-10">
-        <Section
-          index="01"
-          title="Asking before acting"
-          intent="The agent states what it is about to do and stops. Nothing here runs on its own."
-        >
-          <Bento>
-            <Specimen span="lg-tall">
-              <ApprovalModal
-                className="w-full"
-                title="Confirm irreversible action"
-                description="This action can't be undone once executed. Review the change before confirming."
-                confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
-                loading={approvalState === "running"}
-                onConfirm={() => setApprovalState("running")}
-                onCancel={() => setApprovalState("idle")}
-              >
-                <ApprovalModalDiff
-                  title="Scheduled meeting"
-                  before="Oct 22 • 11 AM"
-                  after="Oct 22 • 11:10 AM"
-                  icon={Calendar}
-                />
-              </ApprovalModal>
-            </Specimen>
-
-            <Specimen span="md-tall">
-              {allAnswered ? (
-                <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
-                  <span className="text-sm font-semibold">All set</span>
-                  <span className="text-xs text-muted-foreground">{answers.join(" · ")}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuestionIndex(0);
-                      setAnswers([]);
-                    }}
-                    className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Ask again
-                  </button>
-                </div>
-              ) : (
-                <AgentQuestionCard
-                  key={questionIndex}
-                  className="w-full"
-                  question={currentQuestion.question}
-                  options={currentQuestion.options}
-                  step={`${questionIndex + 1}/${QUESTIONS.length}`}
-                  onAnswer={(answer) => {
-                    setAnswers((a) => [...a, answer]);
-                    setQuestionIndex((i) => i + 1);
-                  }}
-                />
-              )}
-            </Specimen>
-
-            <Specimen span="sm">
-              <ScopePermissionGroup className="w-full">
-                {SCOPES.map((scope) => (
-                  <ScopePermissionCard
-                    key={scope.id}
-                    style="grouped"
-                    icon={scope.icon}
-                    label={scope.label}
-                    checked={scopes[scope.id]}
-                    onCheckedChange={(next) => setScopes((s) => ({ ...s, [scope.id]: next }))}
-                  />
-                ))}
-              </ScopePermissionGroup>
-            </Specimen>
-
-            <Specimen span="xs">
-              <AutonomyLevelSelector className="w-full" />
-            </Specimen>
-
-            <Specimen span="md">
-              {resolved ? (
-                <div className="flex w-full flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm">
-                  <span className="text-sm font-semibold">Conflict resolved</span>
-                  <span className="text-xs text-muted-foreground">
-                    Keeping {DUPLICATE_CONTACTS.find((c) => c.id === resolved)?.label}.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setResolved(null)}
-                    className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Ask again
-                  </button>
-                </div>
-              ) : (
-                <ConflictAmbiguityCard
-                  className="w-full"
-                  title="Two records match “Ada Lovelace”"
-                  description="Pick the one to treat as the source of truth before the write."
-                  options={DUPLICATE_CONTACTS}
-                  onSelect={setResolved}
-                />
-              )}
-            </Specimen>
-          </Bento>
-        </Section>
-
-        <Section
-          index="02"
-          title="Showing the work"
-          intent="While the agent runs, its state and its reasoning stay legible. Each status carries its own colour."
-        >
-          <Bento>
-            <Specimen span="wide">
-              <div className="flex flex-wrap items-center gap-2">
-                {STATUSES.map((status) => (
-                  <AgentStatusIndicator key={status} status={status} variant="outline" />
-                ))}
-              </div>
-            </Specimen>
-
-            <Specimen span="lg-tall">
-              <div className="flex w-full flex-col">
-                <ReasoningTimeline
-                  title="Use Application"
-                  icon={AppWindow}
-                  state="done"
-                  timestamp="3 min ago"
-                />
-                <ReasoningTimeline
-                  title="Added task : name of the task"
-                  icon={ListChecks}
-                  state="done"
-                  timestamp="2 min ago"
-                  style="code"
-                  code={"Request\n{\n}\n\nreturn {\n}"}
-                />
-                <ReasoningTimeline
-                  title="Writing the business cards"
-                  icon={Frame}
-                  state="ongoing"
-                  timestamp="now"
-                  showConnector={false}
-                />
-              </div>
-            </Specimen>
-
-            <Specimen span="xs">
-              <ReasoningTimelineSummary label="Thinking process for 21s" />
-            </Specimen>
-
-            <Specimen span="xs">
-              <ReasoningTimeline
-                title="vizualize"
-                icon={Wrench}
-                style="tool"
-                detailed={false}
-                state="done"
+        {/* The one hero shot. Everything else on the page is downstream of this. */}
+        <div className="relative mx-auto max-w-3xl px-6 pb-16 lg:pb-24">
+          <Stage align="stretch">
+            <ApprovalModal
+              className="w-full border-0 bg-transparent p-0 shadow-none"
+              title="Confirm irreversible action"
+              description="This action can't be undone once executed. Review the change before confirming."
+              confirmLabel={approvalState === "done" ? "Executed" : "Confirm and execute"}
+              loading={approvalState === "running"}
+              onConfirm={() => setApprovalState("running")}
+              onCancel={() => setApprovalState("idle")}
+            >
+              <ApprovalModalDiff
+                title="Scheduled meeting"
+                before="Oct 22 • 11 AM"
+                after="Oct 22 • 11:10 AM"
+                icon={Calendar}
               />
-            </Specimen>
+            </ApprovalModal>
+          </Stage>
+        </div>
 
-            <Specimen span="md">
-              <ArtifactCard
-                className="w-full"
-                title="AI history.svg"
-                meta="1.2 MB"
-                generating={generating}
-                progress={progress}
-                onDownload={() => setProgress(35)}
-                downloadLabel={generating ? "Download" : "Download again"}
-              />
-            </Specimen>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-10 gap-y-4 border-t px-6 py-8">
+          <Metric value="20" label="components" />
+          <Metric value="5" label="themes" />
+          <Metric value="3" label="screens" />
+          <Metric value="AA" label="contrast audited" />
+        </div>
+      </section>
 
-            <Specimen span="xs">
-              <ArtifactCard className="w-full" title="Finance Dashboard" meta="18.2 MB" style="compact" />
-            </Specimen>
+      {/* ── Features: one argument, one visual, alternating ─────────────── */}
+      <Feature
+        eyebrow="Before acting"
+        title="It asks, then it waits."
+        body="When more than one reading of the request is defensible, the agent stops and says so instead of picking one and hoping. Clarification is a first-class state, not an error."
+        align="stretch"
+      >
+        {allAnswered ? (
+          <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
+            <span className="text-sm font-semibold">All set</span>
+            <span className="text-xs text-muted-foreground">{answers.join(" · ")}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setQuestionIndex(0);
+                setAnswers([]);
+              }}
+              className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Ask again
+            </button>
+          </div>
+        ) : (
+          <AgentQuestionCard
+            key={questionIndex}
+            className="w-full"
+            question={currentQuestion.question}
+            options={currentQuestion.options}
+            step={`${questionIndex + 1}/${QUESTIONS.length}`}
+            onAnswer={(answer) => {
+              setAnswers((a) => [...a, answer]);
+              setQuestionIndex((i) => i + 1);
+            }}
+          />
+        )}
 
-            <Specimen span="xs">
-              <ArtifactCard title="brief.pdf" style="inline" />
-            </Specimen>
-          </Bento>
-        </Section>
+        {resolved ? (
+          <div className="flex w-full flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
+            <span className="text-sm font-semibold">Conflict resolved</span>
+            <span className="text-xs text-muted-foreground">
+              Keeping {DUPLICATE_CONTACTS.find((c) => c.id === resolved)?.label}.
+            </span>
+            <button
+              type="button"
+              onClick={() => setResolved(null)}
+              className="w-fit text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Ask again
+            </button>
+          </div>
+        ) : (
+          <ConflictAmbiguityCard
+            className="w-full"
+            title="Two records match “Ada Lovelace”"
+            description="Pick the one to treat as the source of truth before the write."
+            options={DUPLICATE_CONTACTS}
+            onSelect={setResolved}
+          />
+        )}
+      </Feature>
 
-        <Section
-          index="03"
-          title="Staying reversible"
-          intent="After the fact: what happened, how sure the agent was, and the window to take it back."
-        >
-          <Bento>
-            <Specimen span="sm">
-              {undone ? (
-                <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-                  Reverted. The meeting is back at 11 AM.
-                </span>
-              ) : undo.seconds > 0 ? (
-                <UndoRevokeBar
-                  seconds={undo.seconds}
-                  onUndo={() => {
-                    undo.stop();
-                    setUndone(true);
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUndone(false);
-                    undo.restart();
-                  }}
-                  className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Window closed — replay the countdown
-                </button>
-              )}
-            </Specimen>
+      <Feature
+        eyebrow="In flight"
+        title="You can see it thinking."
+        body="The trace is the product. Every step names the tool it reached for and what came back, and the five run states each carry their own colour so the status is readable at a glance."
+        align="stretch"
+        reverse
+      >
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {STATUSES.map((status) => (
+            <AgentStatusIndicator key={status} status={status} variant="outline" />
+          ))}
+        </div>
+        <div className="flex w-full flex-col">
+          <ReasoningTimeline
+            title="Use Application"
+            icon={AppWindow}
+            state="done"
+            timestamp="3 min ago"
+          />
+          <ReasoningTimeline
+            title="Added task : name of the task"
+            icon={ListChecks}
+            state="done"
+            timestamp="2 min ago"
+            style="code"
+            code={"Request\n{\n}\n\nreturn {\n}"}
+          />
+          <ReasoningTimeline
+            title="Writing the business cards"
+            icon={Frame}
+            state="ongoing"
+            timestamp="now"
+            showConnector={false}
+          />
+        </div>
+      </Feature>
 
-            <Specimen span="md">
-              <UndoRevokeBar seconds={124} style="banner" message="Meeting moved to 11:10 AM" />
-            </Specimen>
+      <Feature
+        eyebrow="Afterwards"
+        title="Every move has an undo."
+        body="An action the agent took on its own opens a window to take it back, and the window says how long it has left. Approval and reversal are the same control at two moments in time."
+        align="stretch"
+      >
+        <AgentActionCard
+          className="w-full"
+          title="Send the onboarding recap"
+          description="One email to the 12 new starters, with their business card attached."
+          icon={Send}
+          confidence="medium"
+          parameters={[
+            { label: "Recipients", value: "12 new starters" },
+            { label: "Attachment", value: "business-card.pdf" },
+          ]}
+          actionRow={actionState === "pending" ? "triple" : "revoke"}
+          actionProps={{
+            confirmLabel: "Send",
+            onConfirm: () => setActionState("approved"),
+            onReject: () => setActionState("rejected"),
+            onRevoke: () => setActionState("pending"),
+          }}
+        />
+        <div className="flex w-full justify-center">
+          {undone ? (
+            <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Reverted. The meeting is back at 11 AM.
+            </span>
+          ) : undo.seconds > 0 ? (
+            <UndoRevokeBar
+              seconds={undo.seconds}
+              onUndo={() => {
+                undo.stop();
+                setUndone(true);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setUndone(false);
+                undo.restart();
+              }}
+              className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Window closed — replay the countdown
+            </button>
+          )}
+        </div>
+      </Feature>
 
-            <Specimen span="lg-tall">
-              <AgentActionCard
-                className="w-full"
-                title="Send the onboarding recap"
-                description="One email to the 12 new starters, with their business card attached."
-                icon={Send}
-                confidence="medium"
-                parameters={[
-                  { label: "Recipients", value: "12 new starters" },
-                  { label: "Attachment", value: "business-card.pdf" },
-                ]}
-                actionRow={actionState === "pending" ? "triple" : "revoke"}
-                actionProps={{
-                  confirmLabel: "Send",
-                  onConfirm: () => setActionState("approved"),
-                  onReject: () => setActionState("rejected"),
-                  onRevoke: () => setActionState("pending"),
-                }}
-              />
-            </Specimen>
+      <Feature
+        eyebrow="Standing orders"
+        title="Hand over the work that repeats."
+        body="Delegation is a contract: a task, a duration, and a level of autonomy agreed up front. Once it is running it stays visible and stays switchable off."
+        align="stretch"
+        reverse
+      >
+        <DelegationCard className="w-full" onSubmit={(draft) => setDelegated(draft.task)} />
+        <ScheduledTaskCard
+          className="w-full"
+          title={delegated ?? "Weekly competitor price check"}
+          description="Tracks 3 competitor sites and flags price changes."
+          frequency={delegated ? "Delegated just now" : "Every Monday at 7:00 AM"}
+          status={taskEnabled ? "Next run in 3 days" : "Paused"}
+          enabled={taskEnabled}
+          onEnabledChange={setTaskEnabled}
+        />
+      </Feature>
 
-            <Specimen span="md-tall">
-              <div className="flex w-full flex-col">
-                {ACTIVITY.map((entry) => (
-                  <ActivityLogRow
-                    key={entry.action}
-                    actor={entry.actor}
-                    action={entry.action}
-                    timestamp={entry.timestamp}
-                    isError={entry.isError}
-                  />
-                ))}
-              </div>
-            </Specimen>
+      <Feature
+        eyebrow="When it fails"
+        title="It stops instead of guessing."
+        body="A refused write is a state the interface holds, with the reason attached and a way forward that is the operator's choice — retry, or take it over by hand."
+        align="stretch"
+      >
+        {errorCleared ? (
+          <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+            Meeting moved on the second attempt.
+          </span>
+        ) : (
+          <AgentErrorCard
+            className="w-full"
+            title="The calendar refused the write"
+            description="Workday returned 403. The agent stopped rather than retrying blindly."
+            retryLabel={retrying ? "Retrying…" : "Retry"}
+            onRetry={() => setRetrying(true)}
+          />
+        )}
+        <div className="flex w-full justify-center">
+          {chipRetried ? (
+            <AgentStatusIndicator status="acting" label="Retrying the card export…" />
+          ) : (
+            <ErrorRetryChip
+              label="Business card export failed"
+              onRetry={() => setChipRetried(true)}
+            />
+          )}
+        </div>
+      </Feature>
 
-            <Specimen span="xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <ConfidenceBadge level="high" />
-                <ConfidenceBadge level="medium" />
-                <ConfidenceBadge level="low" />
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <ConfidenceBadge level="high" style="dot" />
-                <ConfidenceBadge level="medium" style="percentage" />
-              </div>
-            </Specimen>
-
-            <Specimen span="xs">
-              <MessageActionRow timestamp="2 hours ago" />
-            </Specimen>
-
-            <Specimen span="xs">
-              <div className="flex flex-wrap gap-2">
-                <SourceChip label="Figma" icon={Frame} href="#" />
-                <SourceChip label="Employee CRM" icon={Contact} href="#" />
-                <SourceChip label="Wrote /Transaction" icon={Database} />
-              </div>
-            </Specimen>
-          </Bento>
-        </Section>
-
-        <Section
-          index="04"
-          title="Handing over the recurring work"
-          intent="A task the agent keeps doing after you have stopped watching, and the scopes it needs to keep."
-        >
-          <Bento>
-            <Specimen span="lg-tall">
-              <DelegationCard className="w-full" onSubmit={(draft) => setDelegated(draft.task)} />
-              {delegated && (
-                <ScheduledTaskCard
-                  className="w-full"
-                  style="list"
-                  title={delegated}
-                  frequency="Delegated just now"
-                />
-              )}
-            </Specimen>
-
-            <Specimen span="md">
-              <ScheduledTaskCard
-                className="w-full"
-                title="Weekly competitor price check"
-                description="Tracks 3 competitor sites and flags price changes."
-                frequency="Every Monday at 7:00 AM"
-                status={taskEnabled ? "Next run in 3 days" : "Paused"}
-                enabled={taskEnabled}
-                onEnabledChange={setTaskEnabled}
-              />
-            </Specimen>
-
-            <Specimen span="xs">
-              <ScheduledTaskCard
-                className="w-full"
-                style="compact"
-                title="Nightly backup sync"
-                frequency="2:00 AM"
-              />
-            </Specimen>
-          </Bento>
-        </Section>
-
-        <Section
-          index="05"
-          title="When it breaks"
-          intent="Failure is a state the interface has to hold, not an exception it drops on the floor."
-        >
-          <Bento>
-            <Specimen span="md">
-              {errorCleared ? (
-                <span className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-                  Meeting moved on the second attempt.
-                </span>
-              ) : (
-                <AgentErrorCard
-                  className="w-full"
-                  style="banner"
-                  title="Coundn't move the meeting"
-                  retryLabel={retrying ? "Retrying…" : "Retry"}
-                  onRetry={() => setRetrying(true)}
-                />
-              )}
-            </Specimen>
-
-            <Specimen span="md-tall">
-              <AgentErrorCard
-                className="w-full"
-                title="The calendar refused the write"
-                description="Workday returned 403. The agent stopped rather than retrying blindly."
-              />
-            </Specimen>
-
-            <Specimen span="xs">
-              {chipRetried ? (
-                <AgentStatusIndicator status="acting" label="Retrying the card export…" />
-              ) : (
-                <ErrorRetryChip
-                  label="Business card export failed"
-                  onRetry={() => setChipRetried(true)}
-                />
-              )}
-            </Specimen>
-          </Bento>
-        </Section>
-
-        <Section
-          index="06"
-          title="In conversation"
-          intent="The same parts assembled into a thread, where the surface steps back so the messages carry the page."
-        >
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ChatPreview>
-              <MessageBubble>Where did the new starter list end up?</MessageBubble>
-              <p className="text-sm">
-                In Workday, under October onboarding. Twelve people, all with a start date
-                this month.
+      {/* ── Conversation: full-bleed band, the parts assembled ──────────── */}
+      <Reveal>
+        <section className="border-y bg-sidebar">
+          <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 lg:py-24">
+            <div className="flex max-w-2xl flex-col gap-4">
+              <Eyebrow>In conversation</Eyebrow>
+              <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+                All of it, in one thread.
+              </h2>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                The reasoning trace, the sources, the artifact and the confidence signal are
+                not separate screens. They land inline, in the place the work is happening.
               </p>
+            </div>
 
-              <MessageBubble>Can you update the employee CRM with the new hires?</MessageBubble>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <ChatPreview>
+                <MessageBubble>Where did the new starter list end up?</MessageBubble>
+                <p className="text-sm leading-relaxed">
+                  In Workday, under October onboarding. Twelve people, all with a start date
+                  this month.
+                </p>
 
-              <div className="flex flex-col">
-                <ReasoningTimeline
-                  title="Use Application"
-                  icon={AppWindow}
-                  state="done"
-                  timestamp="3 min ago"
-                />
-                <ReasoningTimeline
-                  title="Added task : name of the task"
-                  icon={ListChecks}
-                  state="done"
-                  timestamp="2 min ago"
-                  style="code"
-                  code={"Request\n{\n}\n\nreturn {\n}"}
-                />
-                <ReasoningTimeline
-                  title="Done"
-                  state="done"
-                  timestamp="1 min ago"
-                  showConnector={false}
-                />
-              </div>
+                <MessageBubble>Can you update the employee CRM with the new hires?</MessageBubble>
 
-              <p className="text-sm">
-                You now have 12 new employee contacts in the Employee CRM. Each has its own
-                personalised business card on Figma.
-              </p>
+                <div className="flex flex-col">
+                  <ReasoningTimeline
+                    title="Use Application"
+                    icon={AppWindow}
+                    state="done"
+                    timestamp="3 min ago"
+                  />
+                  <ReasoningTimeline
+                    title="Added task : name of the task"
+                    icon={ListChecks}
+                    state="done"
+                    timestamp="2 min ago"
+                    style="code"
+                    code={"Request\n{\n}\n\nreturn {\n}"}
+                  />
+                  <ReasoningTimeline
+                    title="Done"
+                    state="done"
+                    timestamp="1 min ago"
+                    showConnector={false}
+                  />
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="text-xs text-muted-foreground">Task updated</span>
+                <p className="text-sm leading-relaxed">
+                  You now have 12 new employee contacts in the Employee CRM. Each has its own
+                  personalised business card on Figma.
+                </p>
+
                 <div className="flex flex-wrap gap-2">
                   <SourceChip label="Figma" icon={Frame} href="#" />
                   <SourceChip label="Employee CRM" icon={Contact} href="#" />
                 </div>
-              </div>
 
-              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <MessageActionRow timestamp="2 hours ago" />
+                  <ConfidenceBadge level="high" style="dot" />
+                </div>
+              </ChatPreview>
+
+              <ChatPreview>
+                <MessageBubble>Should this be a deck or a single page?</MessageBubble>
+                <p className="text-sm leading-relaxed">
+                  A single page reads better for a timeline — no slide breaks cutting the
+                  sequence in half. I&apos;ll lay it out left to right.
+                </p>
+                <MessageBubble>Good. Keep it light, not a lecture.</MessageBubble>
+
+                <MessageBubble>
+                  Present the history of AI to me in chronological order, in a playful way, from
+                  beginning to end.
+                </MessageBubble>
+
+                <ReasoningTimelineSummary label="Thinking process for 21s" />
+                <ReasoningTimeline
+                  title="vizualize"
+                  icon={Wrench}
+                  style="tool"
+                  detailed={false}
+                  state="done"
+                />
+
+                <p className="text-sm leading-relaxed">The hype curve, two winters included.</p>
+
+                <ArtifactCard
+                  title="AI history.svg"
+                  meta="1.2 MB"
+                  generating={generating}
+                  progress={progress}
+                  onDownload={() => setProgress(35)}
+                  downloadLabel={generating ? "Download" : "Download again"}
+                />
+
                 <MessageActionRow timestamp="2 hours ago" />
-                <ConfidenceBadge level="high" style="dot" />
-              </div>
-            </ChatPreview>
+              </ChatPreview>
+            </div>
 
-            <ChatPreview>
-              <MessageBubble>Should this be a deck or a single page?</MessageBubble>
-              <p className="text-sm">
-                A single page reads better for a timeline — no slide breaks cutting the
-                sequence in half. I&apos;ll lay it out left to right.
-              </p>
-              <MessageBubble>Good. Keep it light, not a lecture.</MessageBubble>
-
-              <MessageBubble>
-                Present the history of AI to me in chronological order, in a playful way, from
-                beginning to end.
-              </MessageBubble>
-
-              <ReasoningTimelineSummary label="Thinking process for 21s" />
-              <ReasoningTimeline
-                title="vizualize"
-                icon={Wrench}
-                style="tool"
-                detailed={false}
-                state="done"
-              />
-
-              <p className="text-sm">The hype curve, two winters included.</p>
-
-              <ArtifactCard
-                title="AI history.svg"
-                meta="1.2 MB"
-                generating={generating}
-                progress={progress}
-                onDownload={() => setProgress(35)}
-                downloadLabel={generating ? "Download" : "Download again"}
-              />
-
-              <MessageActionRow timestamp="2 hours ago" />
-            </ChatPreview>
-
-            <div className="flex flex-col gap-2 lg:col-span-2">
+            <div className="flex flex-col gap-2">
               <MultimodalInputBar
                 style="expanded"
                 voiceState={voiceState}
@@ -904,24 +857,160 @@ export default function ComponentsScreen() {
               )}
             </div>
           </div>
-        </Section>
+        </section>
+      </Reveal>
 
-        {/* Closing, not a numbered chapter: these hand off to the three full product
-            screens the utility bar used to link to directly. */}
-        <div className="flex flex-col gap-5 border-t pt-10">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold tracking-tight">See it assembled</h2>
-            <p className="max-w-2xl text-xs text-muted-foreground">
-              The same parts, built into three full screens.
+      {/* ── The rest of the set, quietly ────────────────────────────────── */}
+      <Reveal>
+        <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">
+          <div className="flex max-w-2xl flex-col gap-4">
+            <Eyebrow>The rest of the set</Eyebrow>
+            <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+              Twenty parts, one grammar.
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              Permissions, autonomy, artifacts, confidence, provenance, audit. Every one of
+              them themeable from the panel on the left.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {EXAMPLES.map((example) => (
-              <ExampleCard key={example.href} {...example} />
-            ))}
+
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Tile className="sm:col-span-2 lg:col-span-1">
+              <ScopePermissionGroup className="w-full">
+                {SCOPES.map((scope) => (
+                  <ScopePermissionCard
+                    key={scope.id}
+                    style="grouped"
+                    icon={scope.icon}
+                    label={scope.label}
+                    checked={scopes[scope.id]}
+                    onCheckedChange={(next) => setScopes((s) => ({ ...s, [scope.id]: next }))}
+                  />
+                ))}
+              </ScopePermissionGroup>
+            </Tile>
+
+            <Tile>
+              <AutonomyLevelSelector className="w-full" />
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <ConfidenceBadge level="high" />
+                  <ConfidenceBadge level="medium" />
+                  <ConfidenceBadge level="low" />
+                </div>
+                <ConfidenceBadge level="medium" style="percentage" />
+              </div>
+            </Tile>
+
+            <Tile className="sm:col-span-2">
+              <div className="flex w-full flex-col">
+                {ACTIVITY.map((entry) => (
+                  <ActivityLogRow
+                    key={entry.action}
+                    actor={entry.actor}
+                    action={entry.action}
+                    timestamp={entry.timestamp}
+                    isError={entry.isError}
+                  />
+                ))}
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-3">
+                <ArtifactCard title="brief.pdf" style="inline" />
+                <ArtifactCard
+                  className="w-full"
+                  title="Finance Dashboard"
+                  meta="18.2 MB"
+                  style="compact"
+                />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <SourceChip label="Figma" icon={Frame} href="#" />
+                <SourceChip label="Employee CRM" icon={Contact} href="#" />
+                <SourceChip label="Wrote /Transaction" icon={Database} />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex flex-col items-center gap-4">
+                <MessageActionRow timestamp="2 hours ago" />
+                <ReasoningTimelineSummary label="Thinking process for 21s" />
+              </div>
+            </Tile>
+
+            <Tile>
+              <div className="flex w-full flex-col items-center gap-3">
+                <UndoRevokeBar
+                  seconds={124}
+                  style="banner"
+                  message="Meeting moved to 11:10 AM"
+                  className="w-full"
+                />
+                <AgentErrorCard
+                  className="w-full"
+                  style="banner"
+                  title="Coundn't move the meeting"
+                />
+              </div>
+            </Tile>
           </div>
+        </section>
+      </Reveal>
+
+      {/* ── Examples ────────────────────────────────────────────────────── */}
+      <Reveal>
+        <section id="examples" className="border-t bg-sidebar">
+          <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 lg:py-24">
+            <div className="flex max-w-2xl flex-col gap-4">
+              <Eyebrow>See it assembled</Eyebrow>
+              <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+                Three screens, built from these parts.
+              </h2>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                The same twenty components, in the products they were drawn for.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+              {EXAMPLES.map((example) => (
+                <ExampleCard key={example.href} {...example} />
+              ))}
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      {/* ── Closing ─────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden border-t">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_100%_at_50%_120%,var(--color-primary)_0%,transparent_65%)] opacity-[0.12]"
+        />
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20 text-center lg:py-28">
+          <h2 className="text-balance text-3xl font-semibold tracking-[-0.01em] lg:text-4xl">
+            The Figma library stays in step.
+          </h2>
+          <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
+            Every component here is drawn in Figma with the same variants and the same
+            tokens, so design and code do not drift apart.
+          </p>
+          <Button
+            size="lg"
+            nativeButton={false}
+            render={<a href={FIGMA_URL} target="_blank" rel="noreferrer" />}
+          >
+            Open in Figma
+            <ExternalLink data-icon="inline-end" strokeWidth={1.75} />
+          </Button>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
