@@ -42,8 +42,16 @@ export function ScopePermissionCard({
 } & VariantProps<typeof scopePermissionCardVariants>) {
   return (
     <div className={cn(scopePermissionCardVariants({ style }), className)}>
+      {/* Granted vs withheld is the whole point of this card, so the category glyph
+          lights up with the switch instead of staying grey either way. */}
       {style === "grouped" && Icon && (
-        <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <Icon
+          className={cn(
+            "size-4 shrink-0 transition-colors",
+            checked ? "text-primary" : "text-muted-foreground"
+          )}
+          strokeWidth={1.75}
+        />
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-xs font-medium text-card-foreground">{label}</span>

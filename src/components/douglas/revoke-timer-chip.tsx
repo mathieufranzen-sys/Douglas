@@ -30,9 +30,11 @@ export function RevokeTimerChip({
       data-state={resolved}
       className={cn(
         "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold",
+        // A window that is still open is a caution, not a neutral label — it closes on
+        // its own. Only the last seconds escalate to destructive.
         resolved === "urgent"
           ? "border-destructive/40 bg-destructive/10 text-destructive"
-          : "border-border bg-background text-foreground",
+          : "border-warning/40 bg-warning/10 text-warning",
         className
       )}
     >

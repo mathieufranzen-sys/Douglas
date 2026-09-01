@@ -38,6 +38,7 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { label: "Accent", foreground: "accentForeground", background: "accent", kind: "text", where: "Hover, chips" },
   { label: "Destructive", foreground: "destructiveForeground", background: "destructive", kind: "text", where: "Error banners" },
   { label: "Warning", foreground: "warningForeground", background: "warning", kind: "text", where: "Conflict cards" },
+  { label: "Success", foreground: "successForeground", background: "success", kind: "text", where: "Done states" },
   { label: "Info", foreground: "infoForeground", background: "info", kind: "text", where: "Confidence badge" },
   { label: "Border", foreground: "border", background: "background", kind: "non-text", where: "Card outlines" },
   { label: "Input", foreground: "input", background: "background", kind: "non-text", where: "Field outlines" },

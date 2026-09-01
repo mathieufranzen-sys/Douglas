@@ -56,7 +56,7 @@ export function ScheduledTaskCard({
   if (style === "compact") {
     return (
       <div className={cn(scheduledTaskCardVariants({ style }), className)}>
-        <CalendarClock className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <CalendarClock className="size-3.5 shrink-0 text-info" strokeWidth={1.75} />
         <span
           className={cn(
             "min-w-0 flex-1 truncate text-xs",
@@ -76,7 +76,7 @@ export function ScheduledTaskCard({
   if (style === "list") {
     return (
       <div className={cn(scheduledTaskCardVariants({ style }), className)}>
-        <CalendarClock className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <CalendarClock className="size-4 shrink-0 text-info" strokeWidth={1.75} />
         <div className="flex min-w-0 flex-1 flex-col">
           <span className={cn("truncate text-sm font-medium", !isOn && "text-muted-foreground")}>
             {title}
@@ -93,7 +93,7 @@ export function ScheduledTaskCard({
   return (
     <div className={cn(scheduledTaskCardVariants({ style }), className)}>
       <div className="flex items-center gap-2">
-        <CalendarClock className="size-4.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <CalendarClock className="size-4.5 shrink-0 text-info" strokeWidth={1.75} />
         <span
           className={cn(
             "min-w-0 flex-1 text-sm font-semibold",
@@ -109,7 +109,7 @@ export function ScheduledTaskCard({
 
       {frequency && (
         <div className="flex items-center gap-1.5 text-xs">
-          <Repeat className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+          <Repeat className="size-3.5 shrink-0 text-info" strokeWidth={1.75} />
           {frequency}
         </div>
       )}

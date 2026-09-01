@@ -41,8 +41,10 @@ export function SourceChip({
 
   return (
     <span className={cn(sourceChipVariants({ style }), className)} {...props}>
+      {/* The glyph carries the brand colour: a source chip points at a real system, and
+          that is the one thing worth spotting in a row of otherwise grey chips. */}
       {Icon && !isCitation && (
-        <Icon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <Icon className="size-3.5 shrink-0 text-primary" strokeWidth={1.75} />
       )}
       <span className="truncate">{label}</span>
       {style === "result" && detail && (

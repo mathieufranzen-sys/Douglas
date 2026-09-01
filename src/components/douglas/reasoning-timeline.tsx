@@ -18,15 +18,17 @@ export type ReasoningState = "default" | "ongoing" | "done" | "error";
 /** Style in Figma: the presentation this step takes inside the timeline. */
 export type ReasoningStyle = "simple" | "tool" | "code" | "accordion";
 
+// A trace is read by scanning it, so the four states carry four colours rather than one
+// grey: in progress reads informational, done reads resolved, error stays destructive.
 function StateIcon({ state, icon: Icon }: { state: ReasoningState; icon?: LucideIcon }) {
   if (state === "ongoing") {
-    return <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" strokeWidth={1.75} />;
+    return <Loader2 className="size-4 shrink-0 animate-spin text-info" strokeWidth={1.75} />;
   }
   if (state === "error") {
     return <XCircle className="size-4 shrink-0 text-destructive" strokeWidth={1.75} />;
   }
   if (state === "done") {
-    return <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />;
+    return <CheckCircle2 className="size-4 shrink-0 text-success" strokeWidth={1.75} />;
   }
   const Glyph = Icon ?? CheckCircle2;
   return <Glyph className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />;

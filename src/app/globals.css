@@ -12,6 +12,8 @@
      the preset switcher in theme-provider.tsx owns every other variable. */
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --font-sans: var(--font-sans);
@@ -75,6 +77,8 @@
   --destructive-foreground: oklch(0.985 0 0);
   --warning: oklch(0.554 0.135 66.442);
   --warning-foreground: oklch(0.985 0 0);
+  --success: oklch(0.5 0.123 158.5);
+  --success-foreground: oklch(0.985 0 0);
   --info: oklch(0.546 0.245 262.881);
   --info-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
@@ -89,13 +93,19 @@
   /* Conversation surfaces sit slightly recessed against --card. Derived with color-mix
      so they keep following whichever preset the theme provider has applied. */
   --sidebar: color-mix(in oklch, var(--card), var(--foreground) 4%);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* The rest of the sidebar family is derived, not fixed. It used to hold hardcoded
+     neutrals, which meant anything painted with it ignored the active preset and the
+     imported themes entirely — the reason these tokens went unused. Now they track
+     whatever theme is live, so they can carry a real surface hierarchy:
+     background → sidebar (recessed canvas) → card → popover. */
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: color-mix(in oklch, var(--sidebar), var(--foreground) 6%);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -117,6 +127,8 @@
   --destructive-foreground: oklch(0.985 0 0);
   --warning: oklch(0.769 0.146 70.08);
   --warning-foreground: oklch(0.216 0.006 56.043);
+  --success: oklch(0.75 0.15 158.5);
+  --success-foreground: oklch(0.216 0.006 56.043);
   --info: oklch(0.707 0.165 254.624);
   --info-foreground: oklch(0.216 0.006 56.043);
   --border: oklch(1 0 0 / 10%);
@@ -127,15 +139,9 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  /* In dark mode "recessed" means pulled back towards the page background. */
+  /* In dark mode "recessed" means pulled back towards the page background. The rest of
+     the family is inherited from :root, where it is derived from the live theme. */
   --sidebar: color-mix(in oklch, var(--card), var(--background) 55%);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {

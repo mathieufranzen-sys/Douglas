@@ -58,7 +58,7 @@ export function ArtifactCard({
   if (style === "compact") {
     return (
       <div className={cn(artifactCardVariants({ style }), className)}>
-        <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+        <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.75} />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
         {meta && <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>}
         {!generating && (
@@ -73,11 +73,18 @@ export function ArtifactCard({
   return (
     <div className={cn(artifactCardVariants({ style }), className)}>
       <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+        {/* The thumbnail tile is the artifact itself, so it takes a colour: informational
+            while it is still being produced, brand once it exists. */}
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            generating ? "bg-info/15" : "bg-primary/10"
+          )}
+        >
           {generating ? (
-            <Loader2 className="size-4 animate-spin text-muted-foreground" strokeWidth={1.75} />
+            <Loader2 className="size-4 animate-spin text-info" strokeWidth={1.75} />
           ) : (
-            <Icon className="size-4 text-muted-foreground" strokeWidth={1.75} />
+            <Icon className="size-4 text-primary" strokeWidth={1.75} />
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col">

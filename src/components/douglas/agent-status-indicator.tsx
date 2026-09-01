@@ -13,6 +13,15 @@ const STATUS_CONFIG: Record<AgentStatus, { icon: LucideIcon; label: string; spin
   waiting: { icon: Clock, label: "Waiting for approval" },
 };
 
+/** One colour per state, so the five statuses aren't five identical grey pills. */
+const STATUS_TINTS: Record<AgentStatus, string> = {
+  idle: "text-success",
+  thinking: "text-info",
+  acting: "text-info",
+  blocked: "text-destructive",
+  waiting: "text-warning",
+};
+
 const indicatorVariants = cva(
   "inline-flex items-center rounded-full text-xs font-medium whitespace-nowrap",
   {
@@ -80,8 +89,15 @@ export function AgentStatusIndicator({
           />
         )
       ) : (
+        /* The glyph is tinted by status even inside a neutral pill: at a glance, whether
+           the agent is working, waiting on you, or done is the thing being read. */
         <Icon
-          className={cn("size-3.5 shrink-0", config.spins && "animate-spin")}
+          className={cn(
+            "size-3.5 shrink-0",
+            config.spins && "animate-spin",
+            STATUS_TINTS[status],
+            resolvedVariant === "failure" && "text-current"
+          )}
           strokeWidth={1.75}
         />
       )}

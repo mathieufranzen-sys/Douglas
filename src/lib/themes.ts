@@ -24,6 +24,8 @@ export type ThemeVars = {
   destructiveForeground: string;
   warning: string;
   warningForeground: string;
+  success: string;
+  successForeground: string;
   info: string;
   infoForeground: string;
   border: string;
@@ -54,10 +56,12 @@ const DEFAULT_RADIUS = 0.625;
 // "informational" regardless of which brand accent is active.
 const SEMANTIC_LIGHT = {
   warning: "oklch(0.554 0.135 66.442)", warningForeground: "oklch(0.985 0 0)",
+  success: "oklch(0.5 0.123 158.5)", successForeground: "oklch(0.985 0 0)",
   info: "oklch(0.546 0.245 262.881)", infoForeground: "oklch(0.985 0 0)",
 };
 const SEMANTIC_DARK = {
   warning: "oklch(0.769 0.146 70.08)", warningForeground: "oklch(0.216 0.006 56.043)",
+  success: "oklch(0.75 0.15 158.5)", successForeground: "oklch(0.216 0.006 56.043)",
   info: "oklch(0.707 0.165 254.624)", infoForeground: "oklch(0.216 0.006 56.043)",
 };
 
@@ -89,12 +93,32 @@ const NEUTRAL_DARK = {
   ...SEMANTIC_DARK,
 };
 
+/**
+ * A brand colour chosen against a white page is too dark to sit on a near-black one:
+ * Douglas's own #493CEF reads 2.7:1 on --card in dark mode, under the 3:1 that icons and
+ * boundaries need. The dark side of a preset therefore lightens the accent and flips its
+ * foreground dark — the same trade shadcn's own dark theme makes, and the one the Prism
+ * preset below already spells out by hand.
+ */
+function forDark(primary: string): { primary: string; primaryForeground: string } {
+  const parts = primary.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
+  if (!parts) return { primary, primaryForeground: "oklch(0.985 0 0)" };
+
+  const [, , chroma, hue] = parts;
+  // Chroma is capped so the lightened accent stays inside sRGB instead of clipping.
+  return {
+    primary: `oklch(0.74 ${Math.min(parseFloat(chroma), 0.185)} ${hue})`,
+    primaryForeground: `oklch(0.21 0.03 ${hue})`,
+  };
+}
+
 function preset(
   id: string,
   label: string,
   primary: string,
   look: { mode: "light" | "dark"; font: string; radius: number }
 ): ThemePreset {
+  const dark = forDark(primary);
   return {
     id,
     label,
@@ -102,7 +126,7 @@ function preset(
     radius: look.radius,
     font: look.font,
     light: { ...NEUTRAL_LIGHT, primary, ring: primary },
-    dark: { ...NEUTRAL_DARK, primary, ring: primary },
+    dark: { ...NEUTRAL_DARK, ...dark, ring: dark.primary },
   };
 }
 
@@ -177,6 +201,8 @@ export const VAR_KEY_MAP: Record<keyof ThemeVars, string> = {
   destructiveForeground: "--destructive-foreground",
   warning: "--warning",
   warningForeground: "--warning-foreground",
+  success: "--success",
+  successForeground: "--success-foreground",
   info: "--info",
   infoForeground: "--info-foreground",
   border: "--border",
@@ -195,6 +221,7 @@ export const COLOR_GROUPS: { label: string; keys: (keyof ThemeVars)[] }[] = [
   { label: "Muted", keys: ["muted", "mutedForeground"] },
   { label: "Destructive", keys: ["destructive", "destructiveForeground"] },
   { label: "Warning", keys: ["warning", "warningForeground"] },
+  { label: "Success", keys: ["success", "successForeground"] },
   { label: "Info", keys: ["info", "infoForeground"] },
   { label: "Border & Input", keys: ["border", "input", "ring"] },
 ];

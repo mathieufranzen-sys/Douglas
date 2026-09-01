@@ -9,9 +9,9 @@ const CONFIG: Record<
   high: {
     label: "High",
     percentage: "92%",
-    dot: "bg-info",
-    text: "text-info",
-    badge: "bg-info/10 text-info",
+    dot: "bg-success",
+    text: "text-success",
+    badge: "bg-success/10 text-success",
   },
   medium: {
     label: "Medium",
